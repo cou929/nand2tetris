@@ -11,4 +11,79 @@
 // "white" in every pixel;
 // the screen should remain fully clear as long as no key is pressed.
 
-// Put your code here.
+// screen limit: 512 * 256 - 1
+@8191
+D=A
+@R3
+M=D
+
+(LOOP)
+@KBD
+D=M
+
+@BLACK
+D;JGT
+
+@WHITE
+0;JMP
+
+@LOOP
+0;JMP
+(END)
+
+(BLACK)
+@R4 // counter
+M=0
+    (BLACKLOOP)
+    @R3
+    D=M
+    @R4
+    D=D-M
+    @BLACKEND
+    D;JLE
+
+    // fill
+    @R4
+    D=M
+    @SCREEN
+    A=D+A
+    D=0
+    M=!D
+
+    // increment
+    @R4
+    M=M+1
+
+    @BLACKLOOP
+    0;JMP
+    (BLACKEND)
+@LOOP
+0;JMP
+
+(WHITE)
+@R4 // counter
+M=0
+    (WHITELOOP)
+    @R3
+    D=M
+    @R4
+    D=D-M
+    @WHITEEND
+    D;JLE
+
+    // fill
+    @R4
+    D=M
+    @SCREEN
+    A=D+A
+    M=0
+
+    // increment
+    @R4
+    M=M+1
+
+    @WHITELOOP
+    0;JMP
+    (WHITEEND)
+@LOOP
+0;JMP
