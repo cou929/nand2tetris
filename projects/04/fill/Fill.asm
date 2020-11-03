@@ -11,7 +11,7 @@
 // "white" in every pixel;
 // the screen should remain fully clear as long as no key is pressed.
 
-// screen limit: 512 * 256 - 1
+// screen limit: 512 * 256 / 16 - 1
 @8191
 D=A
 @R3
