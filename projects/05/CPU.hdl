@@ -39,5 +39,44 @@ CHIP CPU {
         pc[15];          // address of next instruction
 
     PARTS:
-    // Put your code here:
+    // decode
+    Or(a=instruction[15], b=false, out=commandType, out=isCCommand);
+    Not(in=commandType, out=isACommand);
+    Or16(a[0..14]=instruction[0..14], a[15]=false, b=false, out=aValue);
+
+    // A register
+    Mux16(a=aValue, b=compResult, sel=commandType, out=selectedAValue);
+    Or(a=instruction[5], b=false, out=destIsARegister);
+    And(a=isCCommand, b=destIsARegister, out=shouldSaveToARegisterAtCCommand);
+    Or(a=isACommand, b=shouldSaveToARegisterAtCCommand, out=aLoadFlag);
+    ARegister(in=selectedAValue, load=aLoadFlag, out=setAValue, out[0..14]=addressM);
+
+    // D register
+    Or(a=instruction[4], b=false, out=destIsDRegister);
+    And(a=isCCommand, b=destIsDRegister, out=shouldSaveToDRegisterAtCCommand);
+    DRegister(in=compResult, load=shouldSaveToDRegisterAtCCommand, out=setDValue);
+
+    // select A or M for ALU input
+    Mux16(a=setAValue, b=inM, sel=instruction[12], out=aOrMValue);
+
+    // comp (ALU)
+    ALU(x=setDValue, y=aOrMValue, zx=instruction[11], nx=instruction[10], zy=instruction[9], ny=instruction[8], f=instruction[7], no=instruction[6], out=compResult, out=outM, zr=zr, ng=ng);
+
+    // writeM
+    Or(a=instruction[3], b=false, out=destIsMemory);
+    And(a=destIsMemory, b=isCCommand, out=writeM);
+
+    // jump
+    And(a=ng, b=instruction[2], out=jump1);
+    And(a=zr, b=instruction[1], out=jump2);
+    Not(in=ng, out=posOrZero);
+    Not(in=zr, out=notZero);
+    And(a=posOrZero, b=notZero, out=pos);
+    And(a=pos, b=instruction[0], out=jump3);
+    Or(a=jump1, b=jump2, out=jump12);
+    Or(a=jump12, b=jump3, out=jump123);
+    And(a=jump123, b=isCCommand, out=needJump);
+
+    // program counter
+    PC(in=setAValue, load=needJump, reset=reset, inc=true, out[0..14]=pc, out=debugPC);
 }
