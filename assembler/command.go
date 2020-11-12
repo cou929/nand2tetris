@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"regexp"
+	"strconv"
 )
 
 type CommandType int
@@ -14,6 +15,8 @@ const (
 )
 
 type CommandSymbol string
+
+type CommandAddressValue int
 
 type CommandDest string
 
@@ -73,24 +76,42 @@ const (
 )
 
 type Command struct {
-	Type   CommandType
-	Symbol CommandSymbol
-	Dest   CommandDest
-	Comp   CommandComp
-	Jump   CommandJump
+	Type         CommandType
+	Symbol       CommandSymbol
+	AddressValue CommandAddressValue
+	Dest         CommandDest
+	Comp         CommandComp
+	Jump         CommandJump
 }
 
 func NewCommand(typ CommandType) *Command {
 	return &Command{Type: typ}
 }
 
-func (c *Command) SetSymbol(in string) error {
+func (c *Command) SetSymbolOrValue(in string) error {
 	digitsOnly := regexp.MustCompile(`^[0-9]+$`)
 	label := regexp.MustCompile(`^[a-zA-Z_.$:][a-zA-Z0-9_.$:]+$`)
-	if !digitsOnly.MatchString(in) && !label.MatchString(in) {
+	if digitsOnly.MatchString(in) {
+		i, err := strconv.Atoi(in)
+		if err != nil {
+			return fmt.Errorf("Invalid value %s", in)
+		}
+		c.SetAddressValue(i)
+		c.Symbol = ""
+
+		return nil
+	}
+
+	if !label.MatchString(in) {
 		return fmt.Errorf("Invalid format symbol %s", in)
 	}
+
 	c.Symbol = CommandSymbol(in)
+	return nil
+}
+
+func (c *Command) SetAddressValue(in int) error {
+	c.AddressValue = CommandAddressValue(in)
 	return nil
 }
 

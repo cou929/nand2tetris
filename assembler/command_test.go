@@ -1,10 +1,11 @@
 package main
 
 import (
+	"reflect"
 	"testing"
 )
 
-func TestCommand_SetSymbol(t *testing.T) {
+func TestCommand_SetSymbolOrValue(t *testing.T) {
 	type fields struct {
 		Symbol CommandSymbol
 	}
@@ -14,60 +15,66 @@ func TestCommand_SetSymbol(t *testing.T) {
 	tests := []struct {
 		name    string
 		args    args
-		want    CommandSymbol
+		want    *Command
 		wantErr bool
 	}{
 		{
-			name:    "decimal",
-			args:    args{in: "1234"},
-			want:    "1234",
+			name: "decimal",
+			args: args{in: "1234"},
+			want: &Command{
+				AddressValue: 1234,
+			},
 			wantErr: false,
 		},
 		{
-			name:    "string label",
-			args:    args{in: "LOOP5"},
-			want:    "LOOP5",
+			name: "string label",
+			args: args{in: "LOOP5"},
+			want: &Command{
+				Symbol: "LOOP5",
+			},
 			wantErr: false,
 		},
 		{
-			name:    "allowed symbols",
-			args:    args{in: "_.$:"},
-			want:    "_.$:",
+			name: "allowed symbols",
+			args: args{in: "_.$:"},
+			want: &Command{
+				Symbol: "_.$:",
+			},
 			wantErr: false,
 		},
 		{
 			name:    "in case of label, decimal at first char is invalid",
 			args:    args{in: "1A"},
-			want:    "",
+			want:    &Command{},
 			wantErr: true,
 		},
 		{
 			name:    "in case of label, using not allowed symbol is invalid",
 			args:    args{in: "A-B"},
-			want:    "",
+			want:    &Command{},
 			wantErr: true,
 		},
 		{
 			name:    "in case of constants, a floating point is invalid",
 			args:    args{in: "12.55"},
-			want:    "",
+			want:    &Command{},
 			wantErr: true,
 		},
 		{
 			name:    "in case of constants, negative number is invalid",
 			args:    args{in: "-99"},
-			want:    "",
+			want:    &Command{},
 			wantErr: true,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := &Command{}
-			if err := c.SetSymbol(tt.args.in); (err != nil) != tt.wantErr {
-				t.Errorf("Command.SetSymbol() error = %v, wantErr %v", err, tt.wantErr)
+			if err := c.SetSymbolOrValue(tt.args.in); (err != nil) != tt.wantErr {
+				t.Errorf("Command.SetSymbolOrValue() error = %v, wantErr %v", err, tt.wantErr)
 			}
-			if c.Symbol != tt.want {
-				t.Errorf("Command.SetSymbol() = %v, want %v", c.Symbol, tt.want)
+			if !reflect.DeepEqual(c, tt.want) {
+				t.Errorf("Command.SetSymbolOrValue() = %v, want %v", c.Symbol, tt.want)
 			}
 		})
 	}

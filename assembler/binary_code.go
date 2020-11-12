@@ -1,10 +1,5 @@
 package main
 
-import (
-	"fmt"
-	"strconv"
-)
-
 type BinaryCode struct {
 	Dest int
 	Comp int
@@ -67,12 +62,8 @@ var jumpToBin = map[CommandJump]int{
 
 func NewBinaryCode(command *Command) (*BinaryCode, error) {
 	if command.Type == ACommand {
-		i, err := strconv.Atoi(string(command.Symbol))
-		if err != nil {
-			return nil, fmt.Errorf("Invalid symbol %s, %w", command.Symbol, err)
-		}
 		return &BinaryCode{
-			Line: i,
+			Line: int(command.AddressValue),
 		}, nil
 	}
 

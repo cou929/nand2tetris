@@ -19,11 +19,20 @@ func NewParser(reader io.Reader) *Parser {
 }
 
 func (p *Parser) Parse() ([]*Command, error) {
-	var res []*Command
-
+	var asm []string
 	scanner := bufio.NewScanner(p.reader)
 	for scanner.Scan() {
 		l := scanner.Text()
+		asm = append(asm, l)
+	}
+
+	if err := scanner.Err(); err != nil {
+		return nil, err
+	}
+
+	pc := 0
+	st := NewSymbolTable()
+	for _, l := range asm {
 		c, err := p.parseLine(l)
 		if err != nil {
 			return nil, err
@@ -31,11 +40,38 @@ func (p *Parser) Parse() ([]*Command, error) {
 		if c == nil {
 			continue
 		}
-		res = append(res, c)
+		if c.Type != LCommand {
+			pc++
+			continue
+		}
+
+		st.AddEntry(c.Symbol, pc)
 	}
 
-	if err := scanner.Err(); err != nil {
-		return nil, err
+	var res []*Command
+	for _, l := range asm {
+		c, err := p.parseLine(l)
+		if err != nil {
+			return nil, err
+		}
+		if c == nil {
+			continue
+		}
+		if c.Type == LCommand {
+			continue
+		}
+		if c.Type == ACommand && c.Symbol != "" {
+			if st.Contains(c.Symbol) {
+				c.SetAddressValue(st.GetAddress(c.Symbol))
+			} else {
+				n, err := st.AddVariable(c.Symbol)
+				if err != nil {
+					return nil, fmt.Errorf("Invalid symbol %s, %w", c.Symbol, err)
+				}
+				c.SetAddressValue(n)
+			}
+		}
+		res = append(res, c)
 	}
 
 	return res, nil
@@ -207,7 +243,7 @@ func (p *Parser) parseLine(line string) (*Command, error) {
 	}
 
 	if res.Type == ACommand || res.Type == LCommand {
-		if err := res.SetSymbol(state.buf); err != nil {
+		if err := res.SetSymbolOrValue(state.buf); err != nil {
 			return nil, err
 		}
 	}
