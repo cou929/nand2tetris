@@ -1,7 +1,16 @@
 package main
 
-import "fmt"
+import (
+	"bufio"
+	"fmt"
+	"os"
+)
 
 func main() {
-	fmt.Println(1)
+	reader := bufio.NewReader(os.Stdin)
+	parser := NewParser(reader)
+	commands, _ := parser.Parse()
+	for _, c := range commands {
+		fmt.Println(c)
+	}
 }
