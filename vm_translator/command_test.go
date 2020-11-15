@@ -1,6 +1,7 @@
 package main
 
 import (
+	"reflect"
 	"testing"
 )
 
@@ -36,7 +37,7 @@ func TestArithmeticOp_Valid(t *testing.T) {
 	}
 }
 
-func TestCommand_SetArg1(t *testing.T) {
+func TestCommand_setArg1(t *testing.T) {
 	type fields struct {
 		Type CommandType
 	}
@@ -70,17 +71,17 @@ func TestCommand_SetArg1(t *testing.T) {
 			c := &Command{
 				Type: tt.fields.Type,
 			}
-			if err := c.SetArg1(tt.args.arg); (err != nil) != tt.wantErr {
-				t.Errorf("Command.SetArg1() error = %v, wantErr %v", err, tt.wantErr)
+			if err := c.setArg1(tt.args.arg); (err != nil) != tt.wantErr {
+				t.Errorf("Command.setArg1() error = %v, wantErr %v", err, tt.wantErr)
 			}
 			if c.Arg1 != tt.want {
-				t.Errorf("Command.SetArg1() = %v, want %v", c.Arg1, tt.want)
+				t.Errorf("Command.setArg1() = %v, want %v", c.Arg1, tt.want)
 			}
 		})
 	}
 }
 
-func TestCommand_SetArg2(t *testing.T) {
+func TestCommand_setArg2(t *testing.T) {
 	type fields struct {
 		Type CommandType
 	}
@@ -114,11 +115,186 @@ func TestCommand_SetArg2(t *testing.T) {
 			c := &Command{
 				Type: tt.fields.Type,
 			}
-			if err := c.SetArg2(tt.args.arg); (err != nil) != tt.wantErr {
-				t.Errorf("Command.SetArg2() error = %v, wantErr %v", err, tt.wantErr)
+			if err := c.setArg2(tt.args.arg); (err != nil) != tt.wantErr {
+				t.Errorf("Command.setArg2() error = %v, wantErr %v", err, tt.wantErr)
 			}
 			if c.Arg2 != tt.want {
-				t.Errorf("Command.SetArg2() = %v, want %v", c.Arg1, tt.want)
+				t.Errorf("Command.setArg2() = %v, want %v", c.Arg1, tt.want)
+			}
+		})
+	}
+}
+
+func TestNewCommand(t *testing.T) {
+	type args struct {
+		line []string
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    *Command
+		wantErr bool
+	}{
+		{
+			name: "valid arithmetic command",
+			args: args{
+				[]string{"sub"},
+			},
+			want: &Command{
+				Type: CommandArithmetic,
+				Arg1: "sub",
+			},
+			wantErr: false,
+		},
+		{
+			name: "invalid command",
+			args: args{
+				[]string{"multi"},
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name: "invalid arithmetic arg1 specified",
+			args: args{
+				[]string{"add", "1"},
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name: "valid push command",
+			args: args{
+				[]string{"push", "argument", "1"},
+			},
+			want: &Command{
+				Type: CommandPush,
+				Arg1: "argument",
+				Arg2: 1,
+			},
+			wantErr: false,
+		},
+		{
+			name: "invalid push arg2 format",
+			args: args{
+				[]string{"push", "static", "abc"},
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name: "invalid push arg2 empty",
+			args: args{
+				[]string{"push", "static"},
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name: "invalid push number of argument",
+			args: args{
+				[]string{"push", "static", "1", "2"},
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name: "valid pop command",
+			args: args{
+				[]string{"pop", "local", "11"},
+			},
+			want: &Command{
+				Type: CommandPop,
+				Arg1: "local",
+				Arg2: 11,
+			},
+			wantErr: false,
+		},
+		{
+			name: "invalid label arg2 specified",
+			args: args{
+				[]string{"label", "LOOP", "22"},
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name: "valid label command",
+			args: args{
+				[]string{"label", "LOOP"},
+			},
+			want: &Command{
+				Type: CommandLabel,
+				Arg1: "LOOP",
+			},
+			wantErr: false,
+		},
+		{
+			name: "valid goto command",
+			args: args{
+				[]string{"goto", "LOOP"},
+			},
+			want: &Command{
+				Type: CommandGoto,
+				Arg1: "LOOP",
+			},
+			wantErr: false,
+		},
+		{
+			name: "valid if-goto command",
+			args: args{
+				[]string{"if-goto", "LOOP"},
+			},
+			want: &Command{
+				Type: CommandIf,
+				Arg1: "LOOP",
+			},
+			wantErr: false,
+		},
+		{
+			name: "valid function command",
+			args: args{
+				[]string{"function", "test", "3"},
+			},
+			want: &Command{
+				Type: CommandFunction,
+				Arg1: "test",
+				Arg2: 3,
+			},
+			wantErr: false,
+		},
+		{
+			name: "valid call command",
+			args: args{
+				[]string{"call", "test", "2"},
+			},
+			want: &Command{
+				Type: CommandCall,
+				Arg1: "test",
+				Arg2: 2,
+			},
+			wantErr: false,
+		},
+		{
+			name: "valid return command",
+			args: args{
+				[]string{"return"},
+			},
+			want: &Command{
+				Type: CommandReturn,
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := NewCommand(tt.args.line)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("NewCommand() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("NewCommand() = %v, want %v", got, tt.want)
 			}
 		})
 	}

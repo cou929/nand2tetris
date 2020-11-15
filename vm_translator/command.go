@@ -1,6 +1,9 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+	"strconv"
+)
 
 type CommandType int
 
@@ -53,11 +56,73 @@ func (a ArithmeticOp) Valid() bool {
 	return false
 }
 
-func NewCommand(typ CommandType) *Command {
-	return &Command{Type: typ}
+func NewCommand(tokens []string) (*Command, error) {
+	if len(tokens) > 3 {
+		return nil, fmt.Errorf("Too many tokens %v", tokens)
+	}
+	c := &Command{}
+	requiredTokenLen := 0
+
+	switch tokens[0] {
+	case "push":
+		c.Type = CommandPush
+		requiredTokenLen = 3
+	case "pop":
+		c.Type = CommandPop
+		requiredTokenLen = 3
+	case "label":
+		c.Type = CommandLabel
+		requiredTokenLen = 2
+	case "goto":
+		c.Type = CommandGoto
+		requiredTokenLen = 2
+	case "if-goto":
+		c.Type = CommandIf
+		requiredTokenLen = 2
+	case "function":
+		c.Type = CommandFunction
+		requiredTokenLen = 3
+	case "call":
+		c.Type = CommandCall
+		requiredTokenLen = 3
+	case "return":
+		c.Type = CommandReturn
+		requiredTokenLen = 1
+	default:
+		c.Type = CommandArithmetic
+		requiredTokenLen = 1
+	}
+
+	if len(tokens) != requiredTokenLen {
+		return nil, fmt.Errorf("Invalid number of tokens %v", tokens)
+	}
+
+	if len(tokens) > 1 {
+		if err := c.setArg1(tokens[1]); err != nil {
+			return nil, err
+		}
+	}
+
+	if c.Type == CommandArithmetic {
+		if err := c.setArg1(tokens[0]); err != nil {
+			return nil, err
+		}
+	}
+
+	if len(tokens) > 2 {
+		i, err := strconv.Atoi(tokens[2])
+		if err != nil {
+			return nil, fmt.Errorf("Invalid arg2 format %s", tokens[2])
+		}
+		if err := c.setArg2(i); err != nil {
+			return nil, err
+		}
+	}
+
+	return c, nil
 }
 
-func (c *Command) SetArg1(arg string) error {
+func (c *Command) setArg1(arg string) error {
 	if c.Type == CommandReturn {
 		return fmt.Errorf("Invalid usage of Arg1. Type is %d", c.Type)
 	}
@@ -71,7 +136,7 @@ func (c *Command) SetArg1(arg string) error {
 	return nil
 }
 
-func (c *Command) SetArg2(arg int) error {
+func (c *Command) setArg2(arg int) error {
 	if c.Type != CommandPush && c.Type != CommandPop && c.Type != CommandFunction && c.Type != CommandCall {
 		return fmt.Errorf("Invalid useage of Arg2. Type is %d", c.Type)
 	}
