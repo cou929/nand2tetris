@@ -46,6 +46,11 @@ func (p *Parser) Parse() ([]*Command, error) {
 func (p *Parser) parseLine(line string) (*Command, error) {
 	commentRemoved := commentPattern.ReplaceAllString(line, "")
 	trimmed := strings.TrimSpace(commentRemoved)
+
+	if trimmed == "" {
+		return nil, nil
+	}
+
 	tokens := spacePattern.Split(trimmed, -1)
 
 	c, err := NewCommand(tokens)

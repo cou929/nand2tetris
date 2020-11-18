@@ -54,6 +54,18 @@ func TestParser_parseLine(t *testing.T) {
 			},
 			wantErr: false,
 		},
+		{
+			name:    "comment only line",
+			args:    args{line: "  // comment"},
+			want:    nil,
+			wantErr: false,
+		},
+		{
+			name:    "empty line",
+			args:    args{line: "  "},
+			want:    nil,
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
