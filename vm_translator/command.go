@@ -56,6 +56,30 @@ func (a ArithmeticOp) Valid() bool {
 	return false
 }
 
+type MemorySegment string
+
+func (m MemorySegment) Valid() bool {
+	switch m {
+	case "argument":
+		fallthrough
+	case "local":
+		fallthrough
+	case "static":
+		fallthrough
+	case "constant":
+		fallthrough
+	case "this":
+		fallthrough
+	case "that":
+		fallthrough
+	case "pointer":
+		fallthrough
+	case "temp":
+		return true
+	}
+	return false
+}
+
 func NewCommand(tokens []string) (*Command, error) {
 	if len(tokens) > 3 {
 		return nil, fmt.Errorf("Too many tokens %v", tokens)
@@ -130,6 +154,12 @@ func (c *Command) setArg1(arg string) error {
 		op := ArithmeticOp(arg)
 		if !op.Valid() {
 			return fmt.Errorf("Invalid arithmetic command %s", arg)
+		}
+	}
+	if c.Type == CommandPush || c.Type == CommandPop {
+		m := MemorySegment(arg)
+		if !m.Valid() {
+			return fmt.Errorf("Invalid memory segment %s", arg)
 		}
 	}
 	c.Arg1 = CommandArg1(arg)

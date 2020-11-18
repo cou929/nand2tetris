@@ -299,3 +299,34 @@ func TestNewCommand(t *testing.T) {
 		})
 	}
 }
+
+func TestMemorySegment_Valid(t *testing.T) {
+	tests := []struct {
+		name string
+		m    MemorySegment
+		want bool
+	}{
+		{
+			name: "valid",
+			m:    "this",
+			want: true,
+		},
+		{
+			name: "unknown segment",
+			m:    "dynamic",
+			want: false,
+		},
+		{
+			name: "case sensitive",
+			m:    "Pointer",
+			want: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.m.Valid(); got != tt.want {
+				t.Errorf("MemorySegment.Valid() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
