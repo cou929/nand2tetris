@@ -14,11 +14,14 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	for _, c := range commands {
-		asm, err := NewAsmCode(c)
+	for i, c := range commands {
+		asm, err := NewAsmCode("stdin", i, c)
 		if err != nil {
 			panic(err)
 		}
-		fmt.Println(strings.Join(asm.Line, "\n"))
+		if asm == nil {
+			continue
+		}
+		fmt.Println(strings.Join(asm.Code(), "\n"))
 	}
 }
