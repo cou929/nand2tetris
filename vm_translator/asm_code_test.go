@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func TestNewAsmCode(t *testing.T) {
+func TestNewAsmCode_Push(t *testing.T) {
 	type args struct {
 		n string
 		i int
@@ -17,7 +17,6 @@ func TestNewAsmCode(t *testing.T) {
 		want    *AsmCode
 		wantErr bool
 	}{
-		// push
 		{
 			name: "push local",
 			args: args{
@@ -236,8 +235,33 @@ func TestNewAsmCode(t *testing.T) {
 				},
 			},
 		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := NewAsmCode(tt.args.n, tt.args.i, tt.args.c)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("NewAsmCode() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("NewAsmCode() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
 
-		// arithmetic
+func TestNewAsmCode_Arithmetic(t *testing.T) {
+	type args struct {
+		n string
+		i int
+		c *Command
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    *AsmCode
+		wantErr bool
+	}{
 		{
 			name: "add",
 			args: args{
