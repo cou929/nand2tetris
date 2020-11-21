@@ -19,15 +19,61 @@ func NewAsmCode(n string, i int, c *Command) (*AsmCode, error) {
 	}
 
 	if c.Type == CommandPush {
-		if c.Arg1 == "constant" {
+		base := ""
+		switch c.Arg1 {
+		case "local":
+			base = fmt.Sprintf("@LCL")
+		case "argument":
+			base = fmt.Sprintf("@ARG")
+		case "this":
+			base = fmt.Sprintf("@THIS")
+		case "that":
+			base = fmt.Sprintf("@THAT")
+		case "pointer":
+			base = fmt.Sprintf("@R3")
+		case "temp":
+			base = fmt.Sprintf("@R5")
+		case "constant":
+			base = fmt.Sprintf("@%d", c.Arg2)
+		case "static":
+			base = fmt.Sprintf("@%s.%d", res.fileName, c.Arg2)
+		}
+
+		switch c.Arg1 {
+		case "constant":
 			res.line = []string{
-				fmt.Sprintf("@%d", c.Arg2),
-				"D=A", // D=val
+				base,
+				"D=A",
 				"@SP",
 				"A=M",
-				"M=D", // M[SP]=val
+				"M=D",
 				"@SP",
-				"M=M+1", // increment stack pointer
+				"M=M+1",
+			}
+			return res, nil
+		case "static":
+			res.line = []string{
+				base,
+				"D=M",
+				"@SP",
+				"A=M",
+				"M=D",
+				"@SP",
+				"M=M+1",
+			}
+			return res, nil
+		default: // local, argument, this, that, pointer, temp
+			res.line = []string{
+				base,
+				"D=A",
+				fmt.Sprintf("@%d", c.Arg2),
+				"A=D+A",
+				"D=M",
+				"@SP",
+				"A=M",
+				"M=D",
+				"@SP",
+				"M=M+1",
 			}
 			return res, nil
 		}

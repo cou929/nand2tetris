@@ -17,6 +17,175 @@ func TestNewAsmCode(t *testing.T) {
 		want    *AsmCode
 		wantErr bool
 	}{
+		// push
+		{
+			name: "push local",
+			args: args{
+				n: "test.vm",
+				i: 2,
+				c: &Command{
+					Type: CommandPush,
+					Arg1: "local",
+					Arg2: 99,
+				},
+			},
+			want: &AsmCode{
+				fileName: "test.vm",
+				lineNum:  2,
+				line: []string{
+					"@LCL",
+					"D=A",
+					"@99",
+					"A=D+A",
+					"D=M",
+					"@SP",
+					"A=M",
+					"M=D",
+					"@SP",
+					"M=M+1",
+				},
+			},
+		},
+		{
+			name: "push argument",
+			args: args{
+				n: "test.vm",
+				i: 2,
+				c: &Command{
+					Type: CommandPush,
+					Arg1: "argument",
+					Arg2: 99,
+				},
+			},
+			want: &AsmCode{
+				fileName: "test.vm",
+				lineNum:  2,
+				line: []string{
+					"@ARG",
+					"D=A",
+					"@99",
+					"A=D+A",
+					"D=M",
+					"@SP",
+					"A=M",
+					"M=D",
+					"@SP",
+					"M=M+1",
+				},
+			},
+		},
+		{
+			name: "push this",
+			args: args{
+				n: "test.vm",
+				i: 2,
+				c: &Command{
+					Type: CommandPush,
+					Arg1: "this",
+					Arg2: 99,
+				},
+			},
+			want: &AsmCode{
+				fileName: "test.vm",
+				lineNum:  2,
+				line: []string{
+					"@THIS",
+					"D=A",
+					"@99",
+					"A=D+A",
+					"D=M",
+					"@SP",
+					"A=M",
+					"M=D",
+					"@SP",
+					"M=M+1",
+				},
+			},
+		},
+		{
+			name: "push that",
+			args: args{
+				n: "test.vm",
+				i: 2,
+				c: &Command{
+					Type: CommandPush,
+					Arg1: "that",
+					Arg2: 99,
+				},
+			},
+			want: &AsmCode{
+				fileName: "test.vm",
+				lineNum:  2,
+				line: []string{
+					"@THAT",
+					"D=A",
+					"@99",
+					"A=D+A",
+					"D=M",
+					"@SP",
+					"A=M",
+					"M=D",
+					"@SP",
+					"M=M+1",
+				},
+			},
+		},
+		{
+			name: "push pointer",
+			args: args{
+				n: "test.vm",
+				i: 2,
+				c: &Command{
+					Type: CommandPush,
+					Arg1: "pointer",
+					Arg2: 99,
+				},
+			},
+			want: &AsmCode{
+				fileName: "test.vm",
+				lineNum:  2,
+				line: []string{
+					"@R3",
+					"D=A",
+					"@99",
+					"A=D+A",
+					"D=M",
+					"@SP",
+					"A=M",
+					"M=D",
+					"@SP",
+					"M=M+1",
+				},
+			},
+		},
+		{
+			name: "push temp",
+			args: args{
+				n: "test.vm",
+				i: 2,
+				c: &Command{
+					Type: CommandPush,
+					Arg1: "temp",
+					Arg2: 99,
+				},
+			},
+			want: &AsmCode{
+				fileName: "test.vm",
+				lineNum:  2,
+				line: []string{
+					"@R5",
+					"D=A",
+					"@99",
+					"A=D+A",
+					"D=M",
+					"@SP",
+					"A=M",
+					"M=D",
+					"@SP",
+					"M=M+1",
+				},
+			},
+		},
 		{
 			name: "push constant",
 			args: args{
@@ -42,6 +211,33 @@ func TestNewAsmCode(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "push static",
+			args: args{
+				n: "test.vm",
+				i: 2,
+				c: &Command{
+					Type: CommandPush,
+					Arg1: "static",
+					Arg2: 99,
+				},
+			},
+			want: &AsmCode{
+				fileName: "test.vm",
+				lineNum:  2,
+				line: []string{
+					"@test.vm.99",
+					"D=M",
+					"@SP",
+					"A=M",
+					"M=D",
+					"@SP",
+					"M=M+1",
+				},
+			},
+		},
+
+		// arithmetic
 		{
 			name: "add",
 			args: args{
