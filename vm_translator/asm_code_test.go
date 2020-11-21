@@ -33,7 +33,7 @@ func TestNewAsmCode_Push(t *testing.T) {
 				lineNum:  2,
 				line: []string{
 					"@LCL",
-					"D=A",
+					"D=M",
 					"@99",
 					"A=D+A",
 					"D=M",
@@ -44,6 +44,7 @@ func TestNewAsmCode_Push(t *testing.T) {
 					"M=M+1",
 				},
 			},
+			wantErr: false,
 		},
 		{
 			name: "push argument",
@@ -61,7 +62,7 @@ func TestNewAsmCode_Push(t *testing.T) {
 				lineNum:  2,
 				line: []string{
 					"@ARG",
-					"D=A",
+					"D=M",
 					"@99",
 					"A=D+A",
 					"D=M",
@@ -72,6 +73,7 @@ func TestNewAsmCode_Push(t *testing.T) {
 					"M=M+1",
 				},
 			},
+			wantErr: false,
 		},
 		{
 			name: "push this",
@@ -89,7 +91,7 @@ func TestNewAsmCode_Push(t *testing.T) {
 				lineNum:  2,
 				line: []string{
 					"@THIS",
-					"D=A",
+					"D=M",
 					"@99",
 					"A=D+A",
 					"D=M",
@@ -100,6 +102,7 @@ func TestNewAsmCode_Push(t *testing.T) {
 					"M=M+1",
 				},
 			},
+			wantErr: false,
 		},
 		{
 			name: "push that",
@@ -117,7 +120,7 @@ func TestNewAsmCode_Push(t *testing.T) {
 				lineNum:  2,
 				line: []string{
 					"@THAT",
-					"D=A",
+					"D=M",
 					"@99",
 					"A=D+A",
 					"D=M",
@@ -128,6 +131,7 @@ func TestNewAsmCode_Push(t *testing.T) {
 					"M=M+1",
 				},
 			},
+			wantErr: false,
 		},
 		{
 			name: "push pointer",
@@ -137,7 +141,7 @@ func TestNewAsmCode_Push(t *testing.T) {
 				c: &Command{
 					Type: CommandPush,
 					Arg1: "pointer",
-					Arg2: 99,
+					Arg2: 1,
 				},
 			},
 			want: &AsmCode{
@@ -146,7 +150,7 @@ func TestNewAsmCode_Push(t *testing.T) {
 				line: []string{
 					"@R3",
 					"D=A",
-					"@99",
+					"@1",
 					"A=D+A",
 					"D=M",
 					"@SP",
@@ -156,6 +160,7 @@ func TestNewAsmCode_Push(t *testing.T) {
 					"M=M+1",
 				},
 			},
+			wantErr: false,
 		},
 		{
 			name: "push temp",
@@ -165,7 +170,7 @@ func TestNewAsmCode_Push(t *testing.T) {
 				c: &Command{
 					Type: CommandPush,
 					Arg1: "temp",
-					Arg2: 99,
+					Arg2: 6,
 				},
 			},
 			want: &AsmCode{
@@ -174,7 +179,7 @@ func TestNewAsmCode_Push(t *testing.T) {
 				line: []string{
 					"@R5",
 					"D=A",
-					"@99",
+					"@6",
 					"A=D+A",
 					"D=M",
 					"@SP",
@@ -184,6 +189,7 @@ func TestNewAsmCode_Push(t *testing.T) {
 					"M=M+1",
 				},
 			},
+			wantErr: false,
 		},
 		{
 			name: "push constant",
@@ -209,6 +215,7 @@ func TestNewAsmCode_Push(t *testing.T) {
 					"M=M+1", // increment stack pointer
 				},
 			},
+			wantErr: false,
 		},
 		{
 			name: "push static",
@@ -234,6 +241,291 @@ func TestNewAsmCode_Push(t *testing.T) {
 					"M=M+1",
 				},
 			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := NewAsmCode(tt.args.n, tt.args.i, tt.args.c)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("NewAsmCode() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("NewAsmCode() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestNewAsmCode_Pop(t *testing.T) {
+	type args struct {
+		n string
+		i int
+		c *Command
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    *AsmCode
+		wantErr bool
+	}{
+		{
+			name: "pop local",
+			args: args{
+				n: "test.vm",
+				i: 2,
+				c: &Command{
+					Type: CommandPop,
+					Arg1: "local",
+					Arg2: 99,
+				},
+			},
+			want: &AsmCode{
+				fileName: "test.vm",
+				lineNum:  2,
+				line: []string{
+					// address to set
+					"@LCL",
+					"D=M",
+					"@99",
+					"D=D+A",
+					"@POP_DEST",
+					"M=D",
+					// pop and set
+					"@SP",
+					"A=M-1",
+					"D=M",
+					"@SP",
+					"M=M-1",
+					"@POP_DEST",
+					"A=M",
+					"M=D",
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "pop argument",
+			args: args{
+				n: "test.vm",
+				i: 2,
+				c: &Command{
+					Type: CommandPop,
+					Arg1: "argument",
+					Arg2: 99,
+				},
+			},
+			want: &AsmCode{
+				fileName: "test.vm",
+				lineNum:  2,
+				line: []string{
+					// address to set
+					"@ARG",
+					"D=M",
+					"@99",
+					"D=D+A",
+					"@POP_DEST",
+					"M=D",
+					// pop and set
+					"@SP",
+					"A=M-1",
+					"D=M",
+					"@SP",
+					"M=M-1",
+					"@POP_DEST",
+					"A=M",
+					"M=D",
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "pop this",
+			args: args{
+				n: "test.vm",
+				i: 2,
+				c: &Command{
+					Type: CommandPop,
+					Arg1: "this",
+					Arg2: 99,
+				},
+			},
+			want: &AsmCode{
+				fileName: "test.vm",
+				lineNum:  2,
+				line: []string{
+					// address to set
+					"@THIS",
+					"D=M",
+					"@99",
+					"D=D+A",
+					"@POP_DEST",
+					"M=D",
+					// pop and set
+					"@SP",
+					"A=M-1",
+					"D=M",
+					"@SP",
+					"M=M-1",
+					"@POP_DEST",
+					"A=M",
+					"M=D",
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "pop that",
+			args: args{
+				n: "test.vm",
+				i: 2,
+				c: &Command{
+					Type: CommandPop,
+					Arg1: "that",
+					Arg2: 99,
+				},
+			},
+			want: &AsmCode{
+				fileName: "test.vm",
+				lineNum:  2,
+				line: []string{
+					// address to set
+					"@THAT",
+					"D=M",
+					"@99",
+					"D=D+A",
+					"@POP_DEST",
+					"M=D",
+					// pop and set
+					"@SP",
+					"A=M-1",
+					"D=M",
+					"@SP",
+					"M=M-1",
+					"@POP_DEST",
+					"A=M",
+					"M=D",
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "pop pointer",
+			args: args{
+				n: "test.vm",
+				i: 2,
+				c: &Command{
+					Type: CommandPop,
+					Arg1: "pointer",
+					Arg2: 1,
+				},
+			},
+			want: &AsmCode{
+				fileName: "test.vm",
+				lineNum:  2,
+				line: []string{
+					// address to set
+					"@R3",
+					"D=A",
+					"@1",
+					"D=D+A",
+					"@POP_DEST",
+					"M=D",
+					// pop and set
+					"@SP",
+					"A=M-1",
+					"D=M",
+					"@SP",
+					"M=M-1",
+					"@POP_DEST",
+					"A=M",
+					"M=D",
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "pop temp",
+			args: args{
+				n: "test.vm",
+				i: 2,
+				c: &Command{
+					Type: CommandPop,
+					Arg1: "temp",
+					Arg2: 6,
+				},
+			},
+			want: &AsmCode{
+				fileName: "test.vm",
+				lineNum:  2,
+				line: []string{
+					// address to set
+					"@R5",
+					"D=A",
+					"@6",
+					"D=D+A",
+					"@POP_DEST",
+					"M=D",
+					// pop and set
+					"@SP",
+					"A=M-1",
+					"D=M",
+					"@SP",
+					"M=M-1",
+					"@POP_DEST",
+					"A=M",
+					"M=D",
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "pop constant",
+			args: args{
+				n: "test.vm",
+				i: 2,
+				c: &Command{
+					Type: CommandPop,
+					Arg1: "constant",
+					Arg2: 99,
+				},
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name: "pop static",
+			args: args{
+				n: "test.vm",
+				i: 2,
+				c: &Command{
+					Type: CommandPop,
+					Arg1: "static",
+					Arg2: 99,
+				},
+			},
+			want: &AsmCode{
+				fileName: "test.vm",
+				lineNum:  2,
+				line: []string{
+					// address to set
+					"@test.vm.99",
+					"D=A",
+					"@POP_DEST",
+					"M=D",
+					// pop and set
+					"@SP",
+					"A=M-1",
+					"D=M",
+					"@SP",
+					"M=M-1",
+					"@POP_DEST",
+					"A=M",
+					"M=D",
+				},
+			},
+			wantErr: false,
 		},
 	}
 	for _, tt := range tests {
@@ -296,6 +588,7 @@ func TestNewAsmCode_Arithmetic(t *testing.T) {
 					"M=M+1",
 				},
 			},
+			wantErr: false,
 		},
 		{
 			name: "sub",
@@ -331,6 +624,7 @@ func TestNewAsmCode_Arithmetic(t *testing.T) {
 					"M=M+1",
 				},
 			},
+			wantErr: false,
 		},
 		{
 			name: "neg",
@@ -360,6 +654,7 @@ func TestNewAsmCode_Arithmetic(t *testing.T) {
 					"M=M+1",
 				},
 			},
+			wantErr: false,
 		},
 		{
 			name: "eq",
@@ -411,6 +706,7 @@ func TestNewAsmCode_Arithmetic(t *testing.T) {
 					"M=M+1",
 				},
 			},
+			wantErr: false,
 		},
 		{
 			name: "gt",
@@ -462,6 +758,7 @@ func TestNewAsmCode_Arithmetic(t *testing.T) {
 					"M=M+1",
 				},
 			},
+			wantErr: false,
 		},
 		{
 			name: "lt",
@@ -513,6 +810,7 @@ func TestNewAsmCode_Arithmetic(t *testing.T) {
 					"M=M+1",
 				},
 			},
+			wantErr: false,
 		},
 		{
 			name: "and",
@@ -548,6 +846,7 @@ func TestNewAsmCode_Arithmetic(t *testing.T) {
 					"M=M+1",
 				},
 			},
+			wantErr: false,
 		},
 		{
 			name: "or",
@@ -583,6 +882,7 @@ func TestNewAsmCode_Arithmetic(t *testing.T) {
 					"M=M+1",
 				},
 			},
+			wantErr: false,
 		},
 		{
 			name: "not",
@@ -612,6 +912,7 @@ func TestNewAsmCode_Arithmetic(t *testing.T) {
 					"M=M+1",
 				},
 			},
+			wantErr: false,
 		},
 	}
 	for _, tt := range tests {

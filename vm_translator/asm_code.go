@@ -62,7 +62,9 @@ func NewAsmCode(n string, i int, c *Command) (*AsmCode, error) {
 				"M=M+1",
 			}
 			return res, nil
-		default: // local, argument, this, that, pointer, temp
+		case "pointer":
+			fallthrough
+		case "temp":
 			res.line = []string{
 				base,
 				"D=A",
@@ -74,6 +76,105 @@ func NewAsmCode(n string, i int, c *Command) (*AsmCode, error) {
 				"M=D",
 				"@SP",
 				"M=M+1",
+			}
+			return res, nil
+		default: // local, argument, this, that
+			res.line = []string{
+				base,
+				"D=M",
+				fmt.Sprintf("@%d", c.Arg2),
+				"A=D+A",
+				"D=M",
+				"@SP",
+				"A=M",
+				"M=D",
+				"@SP",
+				"M=M+1",
+			}
+			return res, nil
+		}
+	}
+
+	if c.Type == CommandPop {
+		if c.Arg1 == "constant" {
+			return nil, fmt.Errorf("pop command not supported constant")
+		}
+		base := ""
+		switch c.Arg1 {
+		case "local":
+			base = fmt.Sprintf("@LCL")
+		case "argument":
+			base = fmt.Sprintf("@ARG")
+		case "this":
+			base = fmt.Sprintf("@THIS")
+		case "that":
+			base = fmt.Sprintf("@THAT")
+		case "pointer":
+			base = fmt.Sprintf("@R3")
+		case "temp":
+			base = fmt.Sprintf("@R5")
+		case "static":
+			base = fmt.Sprintf("@%s.%d", res.fileName, c.Arg2)
+		}
+		switch c.Arg1 {
+		case "static":
+			res.line = []string{
+				// address to set
+				base,
+				"D=A",
+				"@POP_DEST",
+				"M=D",
+				// pop and set
+				"@SP",
+				"A=M-1",
+				"D=M",
+				"@SP",
+				"M=M-1",
+				"@POP_DEST",
+				"A=M",
+				"M=D",
+			}
+			return res, nil
+		case "pointer":
+			fallthrough
+		case "temp":
+			res.line = []string{
+				// address to set
+				base,
+				"D=A",
+				fmt.Sprintf("@%d", c.Arg2),
+				"D=D+A",
+				"@POP_DEST",
+				"M=D",
+				// pop and set
+				"@SP",
+				"A=M-1",
+				"D=M",
+				"@SP",
+				"M=M-1",
+				"@POP_DEST",
+				"A=M",
+				"M=D",
+			}
+			return res, nil
+		default: // local, argument, this, that
+			res.line = []string{
+				// address to set
+				base,
+				"D=M",
+				fmt.Sprintf("@%d", c.Arg2),
+				"D=D+A",
+				"@POP_DEST",
+				"M=D",
+				// pop and set
+				"@SP",
+				"A=M-1",
+				"D=M",
+				"@SP",
+				"M=M-1",
+				"@POP_DEST",
+				"A=M",
+				"M=D",
 			}
 			return res, nil
 		}

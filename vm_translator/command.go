@@ -161,6 +161,9 @@ func (c *Command) setArg1(arg string) error {
 		if !m.Valid() {
 			return fmt.Errorf("Invalid memory segment %s", arg)
 		}
+		if c.Type == CommandPop && m == "constant" {
+			return fmt.Errorf("Invalid command argument. pop constant is not supported. %s", arg)
+		}
 	}
 	c.Arg1 = CommandArg1(arg)
 	return nil
