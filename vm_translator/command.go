@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"regexp"
 	"strconv"
 )
 
@@ -78,6 +79,13 @@ func (m MemorySegment) Valid() bool {
 		return true
 	}
 	return false
+}
+
+type Label string
+
+func (l Label) Valid() bool {
+	label := regexp.MustCompile(`^[a-zA-Z_.$:][a-zA-Z0-9_.$:]+$`)
+	return label.MatchString(string(l))
 }
 
 func NewCommand(tokens []string) (*Command, error) {
@@ -163,6 +171,12 @@ func (c *Command) setArg1(arg string) error {
 		}
 		if c.Type == CommandPop && m == "constant" {
 			return fmt.Errorf("Invalid command argument. pop constant is not supported. %s", arg)
+		}
+	}
+	if c.Type == CommandLabel {
+		l := Label(arg)
+		if !l.Valid() {
+			return fmt.Errorf("Invalid label %s", arg)
 		}
 	}
 	c.Arg1 = CommandArg1(arg)

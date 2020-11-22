@@ -928,3 +928,50 @@ func TestNewAsmCode_Arithmetic(t *testing.T) {
 		})
 	}
 }
+
+func TestNewAsmCode_Label(t *testing.T) {
+	type args struct {
+		n string
+		i int
+		c *Command
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    *AsmCode
+		wantErr bool
+	}{
+		{
+			name: "normal",
+			args: args{
+				n: "test.vm",
+				i: 2,
+				c: &Command{
+					Type: CommandLabel,
+					Arg1: "MY_LABEL",
+					Arg2: 99,
+				},
+			},
+			want: &AsmCode{
+				fileName: "test.vm",
+				lineNum:  2,
+				line: []string{
+					"(MY_LABEL)",
+				},
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := NewAsmCode(tt.args.n, tt.args.i, tt.args.c)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("NewAsmCode() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("NewAsmCode() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}

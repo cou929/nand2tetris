@@ -230,6 +230,14 @@ func TestNewCommand(t *testing.T) {
 			wantErr: false,
 		},
 		{
+			name: "invalid label",
+			args: args{
+				[]string{"label", "LO-OP"},
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
 			name: "valid goto command",
 			args: args{
 				[]string{"goto", "LOOP"},

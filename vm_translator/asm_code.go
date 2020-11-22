@@ -418,5 +418,14 @@ func NewAsmCode(n string, i int, c *Command) (*AsmCode, error) {
 			return res, nil
 		}
 	}
+
+	if c.Type == CommandLabel {
+		// TODO function name
+		res.line = []string{
+			fmt.Sprintf("(%s)", c.Arg1),
+		}
+		return res, nil
+	}
+
 	return nil, nil
 }
