@@ -949,7 +949,6 @@ func TestNewAsmCode_Label(t *testing.T) {
 				c: &Command{
 					Type: CommandLabel,
 					Arg1: "MY_LABEL",
-					Arg2: 99,
 				},
 			},
 			want: &AsmCode{
@@ -957,6 +956,105 @@ func TestNewAsmCode_Label(t *testing.T) {
 				lineNum:  2,
 				line: []string{
 					"(MY_LABEL)",
+				},
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := NewAsmCode(tt.args.n, tt.args.i, tt.args.c)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("NewAsmCode() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("NewAsmCode() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestNewAsmCode_Goto(t *testing.T) {
+	type args struct {
+		n string
+		i int
+		c *Command
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    *AsmCode
+		wantErr bool
+	}{
+		{
+			name: "normal",
+			args: args{
+				n: "test.vm",
+				i: 2,
+				c: &Command{
+					Type: CommandGoto,
+					Arg1: "MY_LABEL",
+				},
+			},
+			want: &AsmCode{
+				fileName: "test.vm",
+				lineNum:  2,
+				line: []string{
+					"@MY_LABEL",
+					"0;JMP",
+				},
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := NewAsmCode(tt.args.n, tt.args.i, tt.args.c)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("NewAsmCode() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("NewAsmCode() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestNewAsmCode_If(t *testing.T) {
+	type args struct {
+		n string
+		i int
+		c *Command
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    *AsmCode
+		wantErr bool
+	}{
+		{
+			name: "normal",
+			args: args{
+				n: "test.vm",
+				i: 2,
+				c: &Command{
+					Type: CommandIf,
+					Arg1: "MY_LABEL",
+				},
+			},
+			want: &AsmCode{
+				fileName: "test.vm",
+				lineNum:  2,
+				line: []string{
+					"@SP",
+					"A=M-1",
+					"D=M",
+					"@SP",
+					"M=M-1",
+					"@MY_LABEL",
+					"D;JNE",
 				},
 			},
 			wantErr: false,

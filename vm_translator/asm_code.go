@@ -427,5 +427,28 @@ func NewAsmCode(n string, i int, c *Command) (*AsmCode, error) {
 		return res, nil
 	}
 
+	if c.Type == CommandGoto {
+		// TODO function name
+		res.line = []string{
+			fmt.Sprintf("@%s", c.Arg1),
+			"0;JMP",
+		}
+		return res, nil
+	}
+
+	if c.Type == CommandIf {
+		// TODO function name
+		res.line = []string{
+			"@SP",
+			"A=M-1",
+			"D=M",
+			"@SP",
+			"M=M-1",
+			fmt.Sprintf("@%s", c.Arg1),
+			"D;JNE",
+		}
+		return res, nil
+	}
+
 	return nil, nil
 }
