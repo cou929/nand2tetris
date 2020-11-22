@@ -1,21 +1,29 @@
 package main
 
 import (
-	"bufio"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 )
 
 func main() {
-	reader := bufio.NewReader(os.Stdin)
-	parser := NewParser(reader)
+	if len(os.Args) < 2 {
+		panic("input .vm file required")
+	}
+	path := os.Args[1]
+	fileName := filepath.Base(path)
+	reader, err := os.Open(path)
+	if err != nil {
+		panic(err)
+	}
+	parser := NewParser(reader, fileName)
 	commands, err := parser.Parse()
 	if err != nil {
 		panic(err)
 	}
 	for i, c := range commands {
-		asm, err := NewAsmCode("stdin", i, c)
+		asm, err := NewAsmCode(fileName, i, c)
 		if err != nil {
 			panic(err)
 		}

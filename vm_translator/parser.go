@@ -11,12 +11,14 @@ var commentPattern = regexp.MustCompile(`\/\/.*?$`)
 var spacePattern = regexp.MustCompile(`\s+`)
 
 type Parser struct {
-	reader io.Reader
+	reader   io.Reader
+	fileName string
 }
 
-func NewParser(reader io.Reader) *Parser {
+func NewParser(reader io.Reader, n string) *Parser {
 	return &Parser{
-		reader: reader,
+		reader:   reader,
+		fileName: n,
 	}
 }
 
