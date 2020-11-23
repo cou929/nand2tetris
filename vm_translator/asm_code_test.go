@@ -1263,3 +1263,107 @@ func TestNewAsmCode_Return(t *testing.T) {
 		})
 	}
 }
+
+func TestNewAsmCode_Call(t *testing.T) {
+	type args struct {
+		c *Command
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    *AsmCode
+		wantErr bool
+	}{
+		{
+			name: "normal",
+			args: args{
+				c: &Command{
+					Type: CommandCall,
+					Arg1: "myFunc",
+					Arg2: 3,
+					Meta: &CommandMeta{
+						"TestClass.vm",
+						"TestClass.fooFn",
+						2,
+					},
+				},
+			},
+			want: &AsmCode{
+				line: []string{
+					// hold return address
+					"@Return:TestClass.vm.TestClass.fooFn.2",
+					"D=A",
+					"@SP",
+					"A=M",
+					"M=D",
+					"@SP",
+					"M=M+1",
+					// hold LCL
+					"@LCL",
+					"D=M",
+					"@SP",
+					"A=M",
+					"M=D",
+					"@SP",
+					"M=M+1",
+					// hold ARG
+					"@ARG",
+					"D=M",
+					"@SP",
+					"A=M",
+					"M=D",
+					"@SP",
+					"M=M+1",
+					// hold THIS
+					"@THIS",
+					"D=M",
+					"@SP",
+					"A=M",
+					"M=D",
+					"@SP",
+					"M=M+1",
+					// hold THAT
+					"@THAT",
+					"D=M",
+					"@SP",
+					"A=M",
+					"M=D",
+					"@SP",
+					"M=M+1",
+					// move ARG
+					"@SP",
+					"D=M",
+					"@3",
+					"D=D-A",
+					"@5",
+					"D=D-A",
+					"@ARG",
+					"M=D",
+					// move LCL (SP is same position at first)
+					"@SP",
+					"D=M",
+					"@LCL",
+					"M=D",
+					// jump to the func
+					"@myFunc",
+					"0;JMP",
+					// mark return address
+					"(Return:TestClass.vm.TestClass.fooFn.2)",
+				},
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := NewAsmCode(tt.args.c)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("NewAsmCode() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("NewAsmCode() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}

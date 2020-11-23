@@ -532,5 +532,71 @@ func NewAsmCode(c *Command) (*AsmCode, error) {
 		return res, nil
 	}
 
+	if c.Type == CommandCall {
+		retAddr := fmt.Sprintf("Return:%s.%s.%d", c.Meta.fileName, c.Meta.funcName, c.Meta.lineNum)
+		res.line = []string{
+			// hold return address
+			fmt.Sprintf("@%s", retAddr),
+			"D=A",
+			"@SP",
+			"A=M",
+			"M=D",
+			"@SP",
+			"M=M+1",
+			// hold LCL
+			"@LCL",
+			"D=M",
+			"@SP",
+			"A=M",
+			"M=D",
+			"@SP",
+			"M=M+1",
+			// hold ARG
+			"@ARG",
+			"D=M",
+			"@SP",
+			"A=M",
+			"M=D",
+			"@SP",
+			"M=M+1",
+			// hold THIS
+			"@THIS",
+			"D=M",
+			"@SP",
+			"A=M",
+			"M=D",
+			"@SP",
+			"M=M+1",
+			// hold THAT
+			"@THAT",
+			"D=M",
+			"@SP",
+			"A=M",
+			"M=D",
+			"@SP",
+			"M=M+1",
+			// move ARG
+			"@SP",
+			"D=M",
+			fmt.Sprintf("@%d", c.Arg2),
+			"D=D-A",
+			"@5",
+			"D=D-A",
+			"@ARG",
+			"M=D",
+			// move LCL (SP is same position at first)
+			"@SP",
+			"D=M",
+			"@LCL",
+			"M=D",
+			// jump to the func
+			fmt.Sprintf("@%s", c.Arg1),
+			"0;JMP",
+			// mark return address
+			fmt.Sprintf("(%s)", retAddr),
+		}
+		return res, nil
+	}
+
 	return nil, nil
 }
