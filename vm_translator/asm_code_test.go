@@ -1073,3 +1073,177 @@ func TestNewAsmCode_If(t *testing.T) {
 		})
 	}
 }
+
+func TestNewAsmCode_Function(t *testing.T) {
+	type args struct {
+		n string
+		i int
+		c *Command
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    *AsmCode
+		wantErr bool
+	}{
+		{
+			name: "normal",
+			args: args{
+				n: "test.vm",
+				i: 2,
+				c: &Command{
+					Type: CommandFunction,
+					Arg1: "myFunc",
+					Arg2: 3,
+				},
+			},
+			want: &AsmCode{
+				fileName: "test.vm",
+				lineNum:  2,
+				line: []string{
+					"(myFunc)",
+					"@LCL",
+					"D=M",
+					"@0",
+					"A=D+A",
+					"M=0",
+					"@SP",
+					"M=M+1",
+					"@LCL",
+					"D=M",
+					"@1",
+					"A=D+A",
+					"M=0",
+					"@SP",
+					"M=M+1",
+					"@LCL",
+					"D=M",
+					"@2",
+					"A=D+A",
+					"M=0",
+					"@SP",
+					"M=M+1",
+				},
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := NewAsmCode(tt.args.n, tt.args.i, tt.args.c)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("NewAsmCode() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("NewAsmCode() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestNewAsmCode_Return(t *testing.T) {
+	type args struct {
+		n string
+		i int
+		c *Command
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    *AsmCode
+		wantErr bool
+	}{
+		{
+			name: "normal",
+			args: args{
+				n: "test.vm",
+				i: 2,
+				c: &Command{
+					Type: CommandReturn,
+				},
+			},
+			want: &AsmCode{
+				fileName: "test.vm",
+				lineNum:  2,
+				line: []string{
+					// remember return address at R5 (temp segment)
+					"@LCL",
+					"D=M",
+					"@5",
+					"A=D-A",
+					"D=M",
+					"@R5",
+					"M=D",
+					// pop result and  set to ARG as returned value
+					"@SP",
+					"A=M-1",
+					"D=M",
+					"@SP", // unnecessary?
+					"M=M-1",
+					"@ARG",
+					"A=M",
+					"M=D",
+					// resume caller's frame (SP, THAT, THIS, ARG, LCL)
+					"@ARG",
+					"D=M+1",
+					"@SP",
+					"M=D",
+
+					"@LCL",
+					"D=M",
+					"@1",
+					"D=D-A",
+					"A=D",
+					"D=M",
+					"@THAT",
+					"M=D",
+
+					"@LCL",
+					"D=M",
+					"@2",
+					"D=D-A",
+					"A=D",
+					"D=M",
+					"@THIS",
+					"M=D",
+
+					"@LCL",
+					"D=M",
+					"@3",
+					"D=D-A",
+					"A=D",
+					"D=M",
+					"@ARG",
+					"M=D",
+
+					"@LCL",
+					"D=M",
+					"@4",
+					"D=D-A",
+					"A=D",
+					"D=M",
+					"@LCL",
+					"M=D",
+					// jump to return address
+					"@R5",
+					"A=M",
+					"0;JMP",
+				},
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := NewAsmCode(tt.args.n, tt.args.i, tt.args.c)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("NewAsmCode() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("NewAsmCode() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}

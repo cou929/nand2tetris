@@ -450,5 +450,92 @@ func NewAsmCode(n string, i int, c *Command) (*AsmCode, error) {
 		return res, nil
 	}
 
+	if c.Type == CommandFunction {
+		res.line = []string{
+			fmt.Sprintf("(%s)", c.Arg1),
+		}
+		for i := 0; i < int(c.Arg2); i++ {
+			t := []string{
+				"@LCL",
+				"D=M",
+				fmt.Sprintf("@%d", i),
+				"A=D+A",
+				"M=0",
+				"@SP",
+				"M=M+1",
+			}
+			res.line = append(res.line, t...)
+		}
+		return res, nil
+	}
+
+	if c.Type == CommandReturn {
+		res.line = []string{
+			// remember return address at R5 (temp segment)
+			"@LCL",
+			"D=M",
+			"@5",
+			"A=D-A",
+			"D=M",
+			"@R5",
+			"M=D",
+			// pop result and  set to ARG as returned value
+			"@SP",
+			"A=M-1",
+			"D=M",
+			"@SP", // unnecessary?
+			"M=M-1",
+			"@ARG",
+			"A=M",
+			"M=D",
+			// resume caller's frame (SP, THAT, THIS, ARG, LCL)
+			"@ARG",
+			"D=M+1",
+			"@SP",
+			"M=D",
+
+			"@LCL",
+			"D=M",
+			"@1",
+			"D=D-A",
+			"A=D",
+			"D=M",
+			"@THAT",
+			"M=D",
+
+			"@LCL",
+			"D=M",
+			"@2",
+			"D=D-A",
+			"A=D",
+			"D=M",
+			"@THIS",
+			"M=D",
+
+			"@LCL",
+			"D=M",
+			"@3",
+			"D=D-A",
+			"A=D",
+			"D=M",
+			"@ARG",
+			"M=D",
+
+			"@LCL",
+			"D=M",
+			"@4",
+			"D=D-A",
+			"A=D",
+			"D=M",
+			"@LCL",
+			"M=D",
+			// jump to return address
+			"@R5",
+			"A=M",
+			"0;JMP",
+		}
+		return res, nil
+	}
+
 	return nil, nil
 }
