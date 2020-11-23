@@ -24,10 +24,17 @@ type CommandArg1 string
 
 type CommandArg2 int
 
+type CommandMeta struct {
+	fileName string
+	funcName string
+	lineNum  int
+}
+
 type Command struct {
 	Type CommandType
 	Arg1 CommandArg1
 	Arg2 CommandArg2
+	Meta *CommandMeta
 }
 
 type ArithmeticOp string
@@ -189,4 +196,12 @@ func (c *Command) setArg2(arg int) error {
 	}
 	c.Arg2 = CommandArg2(arg)
 	return nil
+}
+
+func (c *Command) SetMeta(fileName string, funcName string, lineNum int) {
+	c.Meta = &CommandMeta{
+		fileName: fileName,
+		funcName: funcName,
+		lineNum:  lineNum,
+	}
 }

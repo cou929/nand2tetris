@@ -22,8 +22,8 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	for i, c := range commands {
-		asm, err := NewAsmCode(fileName, i, c)
+	for _, c := range commands {
+		asm, err := NewAsmCode(c)
 		if err != nil {
 			panic(err)
 		}

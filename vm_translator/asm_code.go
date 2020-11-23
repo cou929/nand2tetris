@@ -3,20 +3,15 @@ package main
 import "fmt"
 
 type AsmCode struct {
-	fileName string
-	lineNum  int
-	line     []string
+	line []string
 }
 
 func (a AsmCode) Code() []string {
 	return a.line
 }
 
-func NewAsmCode(n string, i int, c *Command) (*AsmCode, error) {
-	res := &AsmCode{
-		fileName: n,
-		lineNum:  i,
-	}
+func NewAsmCode(c *Command) (*AsmCode, error) {
+	res := &AsmCode{}
 
 	if c.Type == CommandPush {
 		base := ""
@@ -36,7 +31,7 @@ func NewAsmCode(n string, i int, c *Command) (*AsmCode, error) {
 		case "constant":
 			base = fmt.Sprintf("@%d", c.Arg2)
 		case "static":
-			base = fmt.Sprintf("@%s.%d", res.fileName, c.Arg2)
+			base = fmt.Sprintf("@%s.%d", c.Meta.fileName, c.Arg2)
 		}
 
 		switch c.Arg1 {
@@ -114,7 +109,7 @@ func NewAsmCode(n string, i int, c *Command) (*AsmCode, error) {
 		case "temp":
 			base = fmt.Sprintf("@R5")
 		case "static":
-			base = fmt.Sprintf("@%s.%d", res.fileName, c.Arg2)
+			base = fmt.Sprintf("@%s.%d", c.Meta.fileName, c.Arg2)
 		}
 		switch c.Arg1 {
 		case "static":
@@ -256,23 +251,23 @@ func NewAsmCode(n string, i int, c *Command) (*AsmCode, error) {
 				"D=M-D",
 				"@SP",
 				"M=M-1",
-				fmt.Sprintf("@IS_ZERO.%s.%d", res.fileName, res.lineNum),
+				fmt.Sprintf("@IS_ZERO.%s.%d", c.Meta.fileName, c.Meta.lineNum),
 				"D;JEQ",
-				fmt.Sprintf("@IS_NOT_ZERO.%s.%d", res.fileName, res.lineNum),
+				fmt.Sprintf("@IS_NOT_ZERO.%s.%d", c.Meta.fileName, c.Meta.lineNum),
 				"0;JMP",
 				// comparison result to D
-				fmt.Sprintf("(IS_ZERO.%s.%d)", res.fileName, res.lineNum),
+				fmt.Sprintf("(IS_ZERO.%s.%d)", c.Meta.fileName, c.Meta.lineNum),
 				"@0",
 				"D=!A",
-				fmt.Sprintf("@END.%s.%d", res.fileName, res.lineNum),
+				fmt.Sprintf("@END.%s.%d", c.Meta.fileName, c.Meta.lineNum),
 				"0;JMP",
-				fmt.Sprintf("(IS_NOT_ZERO.%s.%d)", res.fileName, res.lineNum),
+				fmt.Sprintf("(IS_NOT_ZERO.%s.%d)", c.Meta.fileName, c.Meta.lineNum),
 				"@0",
 				"D=A",
-				fmt.Sprintf("@END.%s.%d", res.fileName, res.lineNum),
+				fmt.Sprintf("@END.%s.%d", c.Meta.fileName, c.Meta.lineNum),
 				"0;JMP",
 				// push added result
-				fmt.Sprintf("(END.%s.%d)", res.fileName, res.lineNum),
+				fmt.Sprintf("(END.%s.%d)", c.Meta.fileName, c.Meta.lineNum),
 				"@SP",
 				"A=M",
 				"M=D",
@@ -294,23 +289,23 @@ func NewAsmCode(n string, i int, c *Command) (*AsmCode, error) {
 				"D=M-D",
 				"@SP",
 				"M=M-1",
-				fmt.Sprintf("@IS_ZERO.%s.%d", res.fileName, res.lineNum),
+				fmt.Sprintf("@IS_ZERO.%s.%d", c.Meta.fileName, c.Meta.lineNum),
 				"D;JGT",
-				fmt.Sprintf("@IS_NOT_ZERO.%s.%d", res.fileName, res.lineNum),
+				fmt.Sprintf("@IS_NOT_ZERO.%s.%d", c.Meta.fileName, c.Meta.lineNum),
 				"0;JMP",
 				// comparison result to D
-				fmt.Sprintf("(IS_ZERO.%s.%d)", res.fileName, res.lineNum),
+				fmt.Sprintf("(IS_ZERO.%s.%d)", c.Meta.fileName, c.Meta.lineNum),
 				"@0",
 				"D=!A",
-				fmt.Sprintf("@END.%s.%d", res.fileName, res.lineNum),
+				fmt.Sprintf("@END.%s.%d", c.Meta.fileName, c.Meta.lineNum),
 				"0;JMP",
-				fmt.Sprintf("(IS_NOT_ZERO.%s.%d)", res.fileName, res.lineNum),
+				fmt.Sprintf("(IS_NOT_ZERO.%s.%d)", c.Meta.fileName, c.Meta.lineNum),
 				"@0",
 				"D=A",
-				fmt.Sprintf("@END.%s.%d", res.fileName, res.lineNum),
+				fmt.Sprintf("@END.%s.%d", c.Meta.fileName, c.Meta.lineNum),
 				"0;JMP",
 				// push added result
-				fmt.Sprintf("(END.%s.%d)", res.fileName, res.lineNum),
+				fmt.Sprintf("(END.%s.%d)", c.Meta.fileName, c.Meta.lineNum),
 				"@SP",
 				"A=M",
 				"M=D",
@@ -332,23 +327,23 @@ func NewAsmCode(n string, i int, c *Command) (*AsmCode, error) {
 				"D=M-D",
 				"@SP",
 				"M=M-1",
-				fmt.Sprintf("@IS_ZERO.%s.%d", res.fileName, res.lineNum),
+				fmt.Sprintf("@IS_ZERO.%s.%d", c.Meta.fileName, c.Meta.lineNum),
 				"D;JLT",
-				fmt.Sprintf("@IS_NOT_ZERO.%s.%d", res.fileName, res.lineNum),
+				fmt.Sprintf("@IS_NOT_ZERO.%s.%d", c.Meta.fileName, c.Meta.lineNum),
 				"0;JMP",
 				// comparison result to D
-				fmt.Sprintf("(IS_ZERO.%s.%d)", res.fileName, res.lineNum),
+				fmt.Sprintf("(IS_ZERO.%s.%d)", c.Meta.fileName, c.Meta.lineNum),
 				"@0",
 				"D=!A",
-				fmt.Sprintf("@END.%s.%d", res.fileName, res.lineNum),
+				fmt.Sprintf("@END.%s.%d", c.Meta.fileName, c.Meta.lineNum),
 				"0;JMP",
-				fmt.Sprintf("(IS_NOT_ZERO.%s.%d)", res.fileName, res.lineNum),
+				fmt.Sprintf("(IS_NOT_ZERO.%s.%d)", c.Meta.fileName, c.Meta.lineNum),
 				"@0",
 				"D=A",
-				fmt.Sprintf("@END.%s.%d", res.fileName, res.lineNum),
+				fmt.Sprintf("@END.%s.%d", c.Meta.fileName, c.Meta.lineNum),
 				"0;JMP",
 				// push added result
-				fmt.Sprintf("(END.%s.%d)", res.fileName, res.lineNum),
+				fmt.Sprintf("(END.%s.%d)", c.Meta.fileName, c.Meta.lineNum),
 				"@SP",
 				"A=M",
 				"M=D",

@@ -13,6 +13,8 @@ var spacePattern = regexp.MustCompile(`\s+`)
 type Parser struct {
 	reader   io.Reader
 	fileName string
+	curFunc  string
+	curLine  int
 }
 
 func NewParser(reader io.Reader, n string) *Parser {
@@ -35,6 +37,16 @@ func (p *Parser) Parse() ([]*Command, error) {
 		if c == nil {
 			continue
 		}
+
+		p.curLine++
+		if c.Type == CommandFunction {
+			p.curFunc = string(c.Arg1)
+		}
+		c.SetMeta(p.fileName, p.curFunc, p.curLine)
+		if c.Type == CommandReturn {
+			p.curFunc = ""
+		}
+
 		res = append(res, c)
 	}
 
