@@ -975,7 +975,7 @@ func TestNewAsmCode_Label(t *testing.T) {
 			},
 			want: &AsmCode{
 				line: []string{
-					"(MY_LABEL)",
+					"(TestClass.fooFn$MY_LABEL)",
 				},
 			},
 			wantErr: false,
@@ -1020,7 +1020,7 @@ func TestNewAsmCode_Goto(t *testing.T) {
 			},
 			want: &AsmCode{
 				line: []string{
-					"@MY_LABEL",
+					"@TestClass.fooFn$MY_LABEL",
 					"0;JMP",
 				},
 			},
@@ -1071,7 +1071,7 @@ func TestNewAsmCode_If(t *testing.T) {
 					"D=M",
 					"@SP",
 					"M=M-1",
-					"@MY_LABEL",
+					"@TestClass.fooFn$MY_LABEL",
 					"D;JNE",
 				},
 			},

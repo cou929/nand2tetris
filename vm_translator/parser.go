@@ -43,9 +43,6 @@ func (p *Parser) Parse() ([]*Command, error) {
 			p.curFunc = string(c.Arg1)
 		}
 		c.SetMeta(p.fileName, p.curFunc, p.curLine)
-		if c.Type == CommandReturn {
-			p.curFunc = ""
-		}
 
 		res = append(res, c)
 	}

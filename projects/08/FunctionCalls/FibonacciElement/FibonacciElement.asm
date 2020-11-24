@@ -105,11 +105,11 @@ A=M-1
 D=M
 @SP
 M=M-1
-@IF_TRUE
+@Main.fibonacci$IF_TRUE
 D;JNE
-@IF_FALSE
+@Main.fibonacci$IF_FALSE
 0;JMP
-(IF_TRUE)
+(Main.fibonacci$IF_TRUE)
 @ARG
 D=M
 @0
@@ -125,7 +125,7 @@ D=M
 @5
 A=D-A
 D=M
-@R5
+@R13
 M=D
 @SP
 A=M-1
@@ -171,10 +171,10 @@ A=D
 D=M
 @LCL
 M=D
-@R5
+@R13
 A=M
 0;JMP
-(IF_FALSE)
+(Main.fibonacci$IF_FALSE)
 @ARG
 D=M
 @0
@@ -207,7 +207,7 @@ A=M
 M=D
 @SP
 M=M+1
-@Return:Main.vm..14
+@Return:Main.vm.Main.fibonacci.14
 D=A
 @SP
 A=M
@@ -256,7 +256,7 @@ D=M
 M=D
 @Main.fibonacci
 0;JMP
-(Return:Main.vm..14)
+(Return:Main.vm.Main.fibonacci.14)
 @ARG
 D=M
 @0
@@ -289,7 +289,7 @@ A=M
 M=D
 @SP
 M=M+1
-@Return:Main.vm..18
+@Return:Main.vm.Main.fibonacci.18
 D=A
 @SP
 A=M
@@ -338,7 +338,7 @@ D=M
 M=D
 @Main.fibonacci
 0;JMP
-(Return:Main.vm..18)
+(Return:Main.vm.Main.fibonacci.18)
 @SP
 A=M-1
 D=M
@@ -359,7 +359,7 @@ D=M
 @5
 A=D-A
 D=M
-@R5
+@R13
 M=D
 @SP
 A=M-1
@@ -405,7 +405,7 @@ A=D
 D=M
 @LCL
 M=D
-@R5
+@R13
 A=M
 0;JMP
 (Sys.init)
@@ -466,6 +466,6 @@ M=D
 @Main.fibonacci
 0;JMP
 (Return:Sys.vm.Sys.init.3)
-(WHILE)
-@WHILE
+(Sys.init$WHILE)
+@Sys.init$WHILE
 0;JMP
