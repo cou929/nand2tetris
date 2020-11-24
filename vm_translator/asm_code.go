@@ -466,13 +466,13 @@ func NewAsmCode(c *Command) (*AsmCode, error) {
 
 	if c.Type == CommandReturn {
 		res.line = []string{
-			// remember return address at R5 (temp segment)
+			// remember return address at R13
 			"@LCL",
 			"D=M",
 			"@5",
 			"A=D-A",
 			"D=M",
-			"@R5",
+			"@R13",
 			"M=D",
 			// pop result and  set to ARG as returned value
 			"@SP",
@@ -525,7 +525,7 @@ func NewAsmCode(c *Command) (*AsmCode, error) {
 			"@LCL",
 			"M=D",
 			// jump to return address
-			"@R5",
+			"@R13",
 			"A=M",
 			"0;JMP",
 		}
