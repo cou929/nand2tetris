@@ -600,3 +600,73 @@ func NewAsmCode(c *Command) (*AsmCode, error) {
 
 	return nil, nil
 }
+
+func BootstrapLine() []string {
+	return []string{
+		// initialize SP
+		"@256",
+		"D=A",
+		"@SP",
+		"M=D",
+		// call Sys.init
+		// hold return address
+		"@Return:vm:bootstrap",
+		"D=A",
+		"@SP",
+		"A=M",
+		"M=D",
+		"@SP",
+		"M=M+1",
+		// hold LCL
+		"@LCL",
+		"D=M",
+		"@SP",
+		"A=M",
+		"M=D",
+		"@SP",
+		"M=M+1",
+		// hold ARG
+		"@ARG",
+		"D=M",
+		"@SP",
+		"A=M",
+		"M=D",
+		"@SP",
+		"M=M+1",
+		// hold THIS
+		"@THIS",
+		"D=M",
+		"@SP",
+		"A=M",
+		"M=D",
+		"@SP",
+		"M=M+1",
+		// hold THAT
+		"@THAT",
+		"D=M",
+		"@SP",
+		"A=M",
+		"M=D",
+		"@SP",
+		"M=M+1",
+		// move ARG
+		"@SP",
+		"D=M",
+		"@0",
+		"D=D-A",
+		"@5",
+		"D=D-A",
+		"@ARG",
+		"M=D",
+		// move LCL (SP is same position at first)
+		"@SP",
+		"D=M",
+		"@LCL",
+		"M=D",
+		// jump to the func
+		"@Sys.init",
+		"0;JMP",
+		// mark return address
+		"(Return:vm:bootstrap)",
+	}
+}

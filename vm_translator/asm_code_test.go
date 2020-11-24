@@ -1367,3 +1367,88 @@ func TestNewAsmCode_Call(t *testing.T) {
 		})
 	}
 }
+
+func TestBootstrapLine(t *testing.T) {
+	tests := []struct {
+		name string
+		want []string
+	}{
+		{
+			name: "normal",
+			want: []string{
+				// initialize SP
+				"@256",
+				"D=A",
+				"@SP",
+				"M=D",
+				// call Sys.init
+				// hold return address
+				"@Return:vm:bootstrap",
+				"D=A",
+				"@SP",
+				"A=M",
+				"M=D",
+				"@SP",
+				"M=M+1",
+				// hold LCL
+				"@LCL",
+				"D=M",
+				"@SP",
+				"A=M",
+				"M=D",
+				"@SP",
+				"M=M+1",
+				// hold ARG
+				"@ARG",
+				"D=M",
+				"@SP",
+				"A=M",
+				"M=D",
+				"@SP",
+				"M=M+1",
+				// hold THIS
+				"@THIS",
+				"D=M",
+				"@SP",
+				"A=M",
+				"M=D",
+				"@SP",
+				"M=M+1",
+				// hold THAT
+				"@THAT",
+				"D=M",
+				"@SP",
+				"A=M",
+				"M=D",
+				"@SP",
+				"M=M+1",
+				// move ARG
+				"@SP",
+				"D=M",
+				"@0",
+				"D=D-A",
+				"@5",
+				"D=D-A",
+				"@ARG",
+				"M=D",
+				// move LCL (SP is same position at first)
+				"@SP",
+				"D=M",
+				"@LCL",
+				"M=D",
+				// jump to the func
+				"@Sys.init",
+				"0;JMP",
+				// mark return address
+				"(Return:vm:bootstrap)",
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := BootstrapLine(); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("BootstrapLine() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
