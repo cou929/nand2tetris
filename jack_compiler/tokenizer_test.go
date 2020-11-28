@@ -5,48 +5,6 @@ import (
 	"testing"
 )
 
-func TestNewIdentifierToken(t *testing.T) {
-	type args struct {
-		in string
-	}
-	tests := []struct {
-		name  string
-		args  args
-		want  IdentifierToken
-		want1 bool
-	}{
-		{
-			name:  "normal",
-			args:  args{in: "var_1"},
-			want:  "var_1",
-			want1: true,
-		},
-		{
-			name:  "single char",
-			args:  args{in: "i"},
-			want:  "i",
-			want1: true,
-		},
-		{
-			name:  "first letter should not a digit",
-			args:  args{in: "1var"},
-			want:  "",
-			want1: false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, got1 := NewIdentifierToken(tt.args.in)
-			if got != tt.want {
-				t.Errorf("NewIdentifierToken() got = %v, want %v", got, tt.want)
-			}
-			if got1 != tt.want1 {
-				t.Errorf("NewIdentifierToken() got1 = %v, want %v", got1, tt.want1)
-			}
-		})
-	}
-}
-
 func TestTokenizer_parseLine(t *testing.T) {
 	type fields struct {
 		state tokenizeState
@@ -345,53 +303,6 @@ func TestTokenizer_bufToToken(t *testing.T) {
 			}
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("Tokenizer.bufToToken() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-func TestTokenizer_Xml(t *testing.T) {
-	type fields struct {
-		tokens []Token
-	}
-	tests := []struct {
-		name   string
-		fields fields
-		want   string
-	}{
-		{
-			name: "normal",
-			fields: fields{
-				tokens: []Token{
-					KeywordToken("let"),
-					IdentifierToken("i"),
-					SymbolToken("="),
-					IntConstToken(100),
-					SymbolToken("<"),
-					IntConstToken(200),
-					SymbolToken("&"),
-					StrConstToken("ab"),
-				},
-			},
-			want: `<tokens>
-<keyword>let</keyword>
-<identifier>i</identifier>
-<symbol>=</symbol>
-<integerConstant>100</integerConstant>
-<symbol>&lt;</symbol>
-<integerConstant>200</integerConstant>
-<symbol>&amp;</symbol>
-<stringConstant>ab</stringConstant>
-</tokens>`,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			tokenizer := &Tokenizer{
-				tokens: tt.fields.tokens,
-			}
-			if got := tokenizer.Xml(); got != tt.want {
-				t.Errorf("Tokenizer.Xml() = %v, want %v", got, tt.want)
 			}
 		})
 	}

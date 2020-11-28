@@ -39,7 +39,7 @@ func main() {
 		}
 
 		if tokenize {
-			xml := tokenizer.Xml()
+			xml := tokens.Xml()
 			if toStdout {
 				fmt.Println(xml)
 				continue

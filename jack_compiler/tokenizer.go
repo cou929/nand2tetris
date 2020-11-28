@@ -4,214 +4,9 @@ import (
 	"bufio"
 	"fmt"
 	"io"
-	"regexp"
 	"strconv"
-	"strings"
 	"unicode"
 )
-
-type TokenType int
-
-const (
-	KeywordType TokenType = iota + 1
-	SymbolType
-	IntConstType
-	StrConstType
-	IdentifierType
-)
-
-type Token interface {
-	Type() TokenType
-	String() string
-	Int() int
-}
-
-type KeywordToken string
-
-func NewKeywordToken(in string) (KeywordToken, bool) {
-	switch in {
-	case "class":
-		fallthrough
-	case "constructor":
-		fallthrough
-	case "function":
-		fallthrough
-	case "method":
-		fallthrough
-	case "field":
-		fallthrough
-	case "static":
-		fallthrough
-	case "var":
-		fallthrough
-	case "int":
-		fallthrough
-	case "char":
-		fallthrough
-	case "boolean":
-		fallthrough
-	case "void":
-		fallthrough
-	case "true":
-		fallthrough
-	case "false":
-		fallthrough
-	case "null":
-		fallthrough
-	case "this":
-		fallthrough
-	case "let":
-		fallthrough
-	case "do":
-		fallthrough
-	case "if":
-		fallthrough
-	case "else":
-		fallthrough
-	case "while":
-		fallthrough
-	case "return":
-		return KeywordToken(in), true
-	}
-
-	return "", false
-}
-
-func (t KeywordToken) Type() TokenType {
-	return KeywordType
-}
-
-func (t KeywordToken) String() string {
-	return string(t)
-}
-
-func (t KeywordToken) Int() int {
-	return 0
-}
-
-type SymbolToken string
-
-func NewSymbolToken(in string) (SymbolToken, bool) {
-	switch in {
-	case "{":
-		fallthrough
-	case "}":
-		fallthrough
-	case "(":
-		fallthrough
-	case ")":
-		fallthrough
-	case "[":
-		fallthrough
-	case "]":
-		fallthrough
-	case ".":
-		fallthrough
-	case ",":
-		fallthrough
-	case ";":
-		fallthrough
-	case "+":
-		fallthrough
-	case "-":
-		fallthrough
-	case "*":
-		fallthrough
-	case "/":
-		fallthrough
-	case "&":
-		fallthrough
-	case "|":
-		fallthrough
-	case "<":
-		fallthrough
-	case ">":
-		fallthrough
-	case "=":
-		fallthrough
-	case "~":
-		return SymbolToken(in), true
-	}
-
-	return "", false
-}
-
-func (t SymbolToken) Type() TokenType {
-	return SymbolType
-}
-
-func (t SymbolToken) String() string {
-	return string(t)
-}
-
-func (t SymbolToken) Int() int {
-	return 0
-}
-
-type IntConstToken int
-
-func NewIntConstToken(in int) (IntConstToken, bool) {
-	if 0 <= in || in <= 32767 {
-		return IntConstToken(in), true
-	}
-	return 0, false
-}
-
-func (t IntConstToken) Type() TokenType {
-	return IntConstType
-}
-
-func (t IntConstToken) String() string {
-	return ""
-}
-
-func (t IntConstToken) Int() int {
-	return int(t)
-}
-
-type StrConstToken string
-
-func NewStrConstToken(in string) (StrConstToken, bool) {
-	valid := regexp.MustCompile(`^[^"\n]+$`)
-	if valid.MatchString(in) {
-		return StrConstToken(in), true
-	}
-	return "", false
-}
-
-func (t StrConstToken) Type() TokenType {
-	return StrConstType
-}
-
-func (t StrConstToken) String() string {
-	return string(t)
-}
-
-func (t StrConstToken) Int() int {
-	return 0
-}
-
-type IdentifierToken string
-
-func NewIdentifierToken(in string) (IdentifierToken, bool) {
-	valid := regexp.MustCompile(`^[a-zA-Z_]([a-zA-Z0-9_]+)?$`)
-	if valid.MatchString(in) {
-		return IdentifierToken(in), true
-	}
-	return "", false
-}
-
-func (t IdentifierToken) Type() TokenType {
-	return IdentifierType
-}
-
-func (t IdentifierToken) String() string {
-	return string(t)
-}
-
-func (t IdentifierToken) Int() int {
-	return 0
-}
 
 type tokenizeState int
 
@@ -235,7 +30,7 @@ func NewTokenizer(r io.Reader) *Tokenizer {
 	}
 }
 
-func (t *Tokenizer) Tokenize() ([]Token, error) {
+func (t *Tokenizer) Tokenize() (Tokens, error) {
 	var res []Token
 
 	scanner := bufio.NewScanner(t.reader)
@@ -256,7 +51,7 @@ func (t *Tokenizer) Tokenize() ([]Token, error) {
 	}
 
 	t.tokens = res
-	return res, nil
+	return NewTokens(res), nil
 }
 
 func (t *Tokenizer) parseLine(l string) ([]Token, error) {
@@ -491,37 +286,4 @@ func (t *Tokenizer) canTransit(next tokenizeState) bool {
 		}
 	}
 	return false
-}
-
-func (t *Tokenizer) Xml() string {
-	if len(t.tokens) <= 0 {
-		return ""
-	}
-
-	var res []string
-	res = append(res, `<tokens>`)
-	for _, tkn := range t.tokens {
-		switch tkn.Type() {
-		case KeywordType:
-			res = append(res, fmt.Sprintf("<keyword>%s</keyword>", t.escapeXml(tkn.String())))
-		case SymbolType:
-			res = append(res, fmt.Sprintf("<symbol>%s</symbol>", t.escapeXml(tkn.String())))
-		case IntConstType:
-			res = append(res, fmt.Sprintf("<integerConstant>%d</integerConstant>", tkn.Int()))
-		case StrConstType:
-			res = append(res, fmt.Sprintf("<stringConstant>%s</stringConstant>", t.escapeXml(tkn.String())))
-		case IdentifierType:
-			res = append(res, fmt.Sprintf("<identifier>%s</identifier>", t.escapeXml(tkn.String())))
-		}
-	}
-	res = append(res, `</tokens>`)
-
-	return strings.Join(res, "\n")
-}
-
-func (t *Tokenizer) escapeXml(in string) string {
-	a := strings.ReplaceAll(in, "&", "&amp;")
-	b := strings.ReplaceAll(a, "<", "&lt;")
-	c := strings.ReplaceAll(b, ">", "&gt;")
-	return c
 }
