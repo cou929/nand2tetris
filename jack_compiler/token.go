@@ -21,20 +21,8 @@ func (t *Tokens) Xml() string {
 	return strings.Join(res, "\n")
 }
 
-type TokenType int
-
-const (
-	KeywordType TokenType = iota + 1
-	SymbolType
-	IntConstType
-	StrConstType
-	IdentifierType
-)
-
 type Token interface {
-	Type() TokenType
-	String() string
-	Int() int
+	Type() NodeType
 	Xml() string
 }
 
@@ -89,16 +77,12 @@ func NewKeywordToken(in string) (KeywordToken, bool) {
 	return "", false
 }
 
-func (t KeywordToken) Type() TokenType {
+func (t KeywordToken) Type() NodeType {
 	return KeywordType
 }
 
 func (t KeywordToken) String() string {
 	return string(t)
-}
-
-func (t KeywordToken) Int() int {
-	return 0
 }
 
 func (t KeywordToken) Xml() string {
@@ -152,16 +136,12 @@ func NewSymbolToken(in string) (SymbolToken, bool) {
 	return "", false
 }
 
-func (t SymbolToken) Type() TokenType {
+func (t SymbolToken) Type() NodeType {
 	return SymbolType
 }
 
 func (t SymbolToken) String() string {
 	return string(t)
-}
-
-func (t SymbolToken) Int() int {
-	return 0
 }
 
 func (t SymbolToken) Xml() string {
@@ -177,12 +157,8 @@ func NewIntConstToken(in int) (IntConstToken, bool) {
 	return 0, false
 }
 
-func (t IntConstToken) Type() TokenType {
+func (t IntConstToken) Type() NodeType {
 	return IntConstType
-}
-
-func (t IntConstToken) String() string {
-	return ""
 }
 
 func (t IntConstToken) Int() int {
@@ -203,16 +179,12 @@ func NewStrConstToken(in string) (StrConstToken, bool) {
 	return "", false
 }
 
-func (t StrConstToken) Type() TokenType {
+func (t StrConstToken) Type() NodeType {
 	return StrConstType
 }
 
 func (t StrConstToken) String() string {
 	return string(t)
-}
-
-func (t StrConstToken) Int() int {
-	return 0
 }
 
 func (t StrConstToken) Xml() string {
@@ -229,16 +201,12 @@ func NewIdentifierToken(in string) (IdentifierToken, bool) {
 	return "", false
 }
 
-func (t IdentifierToken) Type() TokenType {
+func (t IdentifierToken) Type() NodeType {
 	return IdentifierType
 }
 
 func (t IdentifierToken) String() string {
 	return string(t)
-}
-
-func (t IdentifierToken) Int() int {
-	return 0
 }
 
 func (t IdentifierToken) Xml() string {

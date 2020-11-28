@@ -34,7 +34,8 @@ func main() {
 		defer reader.Close()
 
 		tokenizer := NewTokenizer(reader)
-		if _, err := tokenizer.Tokenize(); err != nil {
+		tokens, err := tokenizer.Tokenize()
+		if err != nil {
 			log.Fatal(err)
 		}
 
@@ -57,6 +58,25 @@ func main() {
 			}
 
 			continue
+		}
+
+		parser := NewParser()
+		pt, err := parser.Parse(tokens)
+
+		xml := pt.Xml()
+		if toStdout {
+			fmt.Println(xml)
+			continue
+		}
+		e := filepath.Ext(f)
+		n := fmt.Sprintf("%s.out.xml", f[0:len(f)-len(e)])
+		w, err := os.Create(n)
+		if err != nil {
+			log.Fatal(err)
+		}
+		_, err = w.WriteString(xml)
+		if err != nil {
+			log.Fatal(err)
 		}
 	}
 }
