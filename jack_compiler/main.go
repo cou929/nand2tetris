@@ -62,6 +62,9 @@ func main() {
 
 		parser := NewParser()
 		tree, err := parser.Parse(tokens)
+		if err != nil {
+			log.Fatal(err)
+		}
 
 		xml := tree.Xml()
 		if toStdout {
