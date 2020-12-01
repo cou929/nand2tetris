@@ -61,9 +61,9 @@ func main() {
 		}
 
 		parser := NewParser()
-		pt, err := parser.Parse(tokens)
+		tree, err := parser.Parse(tokens)
 
-		xml := pt.Xml()
+		xml := tree.Xml()
 		if toStdout {
 			fmt.Println(xml)
 			continue
