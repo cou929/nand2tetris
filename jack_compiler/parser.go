@@ -155,7 +155,7 @@ func (p *Parser) parseType(tokens TokenList) (TreeNode, TokenList, error) {
 
 	next, rest, err := tokens.PopNext()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("[parseType] %w", err)
 	}
 	kw, ok := next.(KeywordToken)
 	if ok {
@@ -164,12 +164,12 @@ func (p *Parser) parseType(tokens TokenList) (TreeNode, TokenList, error) {
 			res.AppendChild(kw)
 			return res, rest, nil
 		}
-		return nil, nil, fmt.Errorf("Invalid keyword %v", tokens)
+		return nil, nil, fmt.Errorf("[parseType] Invalid keyword %v want (int|char|boolean), %v", kw, rest)
 	}
 
 	n, rest, err := p.parseClassName(tokens)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("[parseType] %w", err)
 	}
 	res.AppendChild(n)
 	return res, rest, nil
@@ -181,31 +181,31 @@ func (p *Parser) parseSubroutineDec(tokens TokenList) (TreeNode, TokenList, erro
 	// func type
 	next, rest, err := tokens.PopNext()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("[parseSubroutineDec] %w", err)
 	}
 	mayFuncType, ok := next.(KeywordToken)
 	if !ok || (mayFuncType.String() != "constructor" && mayFuncType.String() != "function" && mayFuncType.String() != "method") {
-		return nil, nil, fmt.Errorf("Invalid keyword %v", tokens)
+		return nil, nil, fmt.Errorf("[parseSubroutineDec] Invalid keyword %v want (constructor|function|method), %v", mayFuncType, rest)
 	}
 	res.AppendChild(mayFuncType)
 
 	// return value type
 	next, err = rest.LookAt(0)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("[parseSubroutineDec] %w", err)
 	}
 	mayVoid, ok := next.(KeywordToken)
 	if ok && mayVoid.String() == "void" {
 		res.AppendChild(mayVoid)
 		_, r, err := rest.PopNext()
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, fmt.Errorf("[parseSubroutineDec] %w", err)
 		}
 		rest = r
 	} else {
 		typ, r, err := p.parseType(rest)
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, fmt.Errorf("[parseSubroutineDec] %w", err)
 		}
 		res.AppendChild(typ)
 		rest = r
@@ -214,43 +214,43 @@ func (p *Parser) parseSubroutineDec(tokens TokenList) (TreeNode, TokenList, erro
 	// subroutine name
 	sn, rest, err := p.parseSubroutineName(rest)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("[parseSubroutineDec] %w", err)
 	}
 	res.AppendChild(sn)
 
 	// open paren
 	next, rest, err = rest.PopNext()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("[parseSubroutineDec] %w", err)
 	}
 	mayOpenParen, ok := next.(SymbolToken)
 	if !ok || mayOpenParen.String() != "(" {
-		return nil, nil, fmt.Errorf("Invalid symbol %v", tokens)
+		return nil, nil, fmt.Errorf("[parseSubroutineDec] Invalid symbol %v want (, %v", mayOpenParen, rest)
 	}
 	res.AppendChild(mayOpenParen)
 
 	// parameter list
 	pl, rest, err := p.parseParameterList(rest)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("[parseSubroutineDec] %w", err)
 	}
 	res.AppendChild(pl)
 
 	// close paren
 	next, rest, err = rest.PopNext()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("[parseSubroutineDec] %w", err)
 	}
 	mayCloseParen, ok := next.(SymbolToken)
 	if !ok || mayCloseParen.String() != ")" {
-		return nil, nil, fmt.Errorf("Invalid symbol %v", tokens)
+		return nil, nil, fmt.Errorf("[parseSubroutineDec] Invalid symbol %v want ), %v", mayCloseParen, rest)
 	}
 	res.AppendChild(mayCloseParen)
 
 	// subroutine body
 	sb, rest, err := p.parseSubroutineBody(rest)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("[parseSubroutineDec] %w", err)
 	}
 	res.AppendChild(sb)
 
@@ -284,7 +284,7 @@ func (p *Parser) parseParameterList(tokens TokenList) (TreeNode, TokenList, erro
 		}
 		n, r, err := p.parseVarName(r)
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, fmt.Errorf("[parseParameterList] %w", err)
 		}
 		res.AppendChild(t)
 		res.AppendChild(n)
@@ -300,11 +300,11 @@ func (p *Parser) parseSubroutineBody(tokens TokenList) (TreeNode, TokenList, err
 	// open bracket
 	next, rest, err := tokens.PopNext()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("[parseSubroutineBody] %w", err)
 	}
 	mayOpenBracket, ok := next.(SymbolToken)
 	if !ok || mayOpenBracket.String() != "{" {
-		return nil, nil, fmt.Errorf("Invalid symbol %v", tokens)
+		return nil, nil, fmt.Errorf("[parseSubroutineBody] Invalid symbol %v want {, %v", mayOpenBracket, rest)
 	}
 	res.AppendChild(mayOpenBracket)
 
@@ -321,18 +321,18 @@ func (p *Parser) parseSubroutineBody(tokens TokenList) (TreeNode, TokenList, err
 	// statements
 	stms, rest, err := p.parseStatements(rest)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("[parseSubroutineBody] %w", err)
 	}
 	res.AppendChild(stms)
 
 	// close bracket
 	next, rest, err = rest.PopNext()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("[parseSubroutineBody] %w", err)
 	}
 	mayCloseBracket, ok := next.(SymbolToken)
 	if !ok || mayCloseBracket.String() != "}" {
-		return nil, nil, fmt.Errorf("Invalid symbol %v", tokens)
+		return nil, nil, fmt.Errorf("[parseSubroutineBody] Invalid symbol %v want }, %v", mayCloseBracket, rest)
 	}
 	res.AppendChild(mayCloseBracket)
 
@@ -345,25 +345,25 @@ func (p *Parser) parseVarDec(tokens TokenList) (TreeNode, TokenList, error) {
 	// var keyword
 	next, rest, err := tokens.PopNext()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("[parseVarDec] %w", err)
 	}
 	mayVarKeyword, ok := next.(KeywordToken)
 	if !ok || mayVarKeyword.String() != "var" {
-		return nil, nil, fmt.Errorf("Invalid keyword %v", tokens)
+		return nil, nil, fmt.Errorf("[parseVarDec] Invalid keyword %v want var, %v", mayVarKeyword, rest)
 	}
 	res.AppendChild(mayVarKeyword)
 
 	// type
 	typ, rest, err := p.parseType(rest)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("[parseVarDec] %w", err)
 	}
 	res.AppendChild(typ)
 
 	// varName
 	v, rest, err := p.parseVarName(rest)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("[parseVarDec] %w", err)
 	}
 	res.AppendChild(v)
 
@@ -382,7 +382,7 @@ func (p *Parser) parseVarDec(tokens TokenList) (TreeNode, TokenList, error) {
 		// var
 		v, r, err := p.parseVarName(r)
 		if err != nil {
-			break
+			return nil, nil, fmt.Errorf("[parseVarDec] %w", err)
 		}
 
 		res.AppendChild(mayComma)
@@ -397,7 +397,7 @@ func (p *Parser) parseVarDec(tokens TokenList) (TreeNode, TokenList, error) {
 	}
 	maySemicolon, ok := next.(SymbolToken)
 	if !ok || maySemicolon.String() != ";" {
-		return nil, nil, fmt.Errorf("Invalid Symbol %v", tokens)
+		return nil, nil, fmt.Errorf("[parseVarDec] Invalid Symbol %v want ;, %v", maySemicolon, rest)
 	}
 	res.AppendChild(maySemicolon)
 
@@ -407,10 +407,10 @@ func (p *Parser) parseVarDec(tokens TokenList) (TreeNode, TokenList, error) {
 func (p *Parser) parseClassName(tokens TokenList) (TreeNode, TokenList, error) {
 	next, rest, err := tokens.PopNext()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("[parseClassName] %w", err)
 	}
 	if next.Type() != IdentifierType {
-		return nil, nil, fmt.Errorf("Type mismatch %v", tokens)
+		return nil, nil, fmt.Errorf("[parseClassName] Type mismatch %v want IdentifierType, %v, %v", next.Type(), next, rest)
 	}
 	cn := NewClassNameNode()
 	cn.AppendChild(next)
@@ -420,10 +420,10 @@ func (p *Parser) parseClassName(tokens TokenList) (TreeNode, TokenList, error) {
 func (p *Parser) parseSubroutineName(tokens TokenList) (TreeNode, TokenList, error) {
 	next, rest, err := tokens.PopNext()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("[parseSubroutineName] %w", err)
 	}
 	if next.Type() != IdentifierType {
-		return nil, nil, fmt.Errorf("Type mismatch %v", tokens)
+		return nil, nil, fmt.Errorf("[parseSubroutineName] Type mismatch %v want IdentifierType, %v, %v", next.Type(), next, rest)
 	}
 	sn := NewSubroutineNameNode()
 	sn.AppendChild(next)
@@ -433,10 +433,10 @@ func (p *Parser) parseSubroutineName(tokens TokenList) (TreeNode, TokenList, err
 func (p *Parser) parseVarName(tokens TokenList) (TreeNode, TokenList, error) {
 	next, rest, err := tokens.PopNext()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("[parseVarName] %w", err)
 	}
 	if next.Type() != IdentifierType {
-		return nil, nil, fmt.Errorf("Type mismatch %v", tokens)
+		return nil, nil, fmt.Errorf("[parseVarName] Type mismatch %v want IdentifierType, %v, %v", next.Type(), next, rest)
 	}
 	vn := NewVarNameNode()
 	vn.AppendChild(next)
@@ -487,7 +487,7 @@ func (p *Parser) parseStatement(tokens TokenList) (TreeNode, TokenList, error) {
 		return res, rest, nil
 	}
 
-	return nil, nil, fmt.Errorf("Invalid syntax %v", tokens)
+	return nil, nil, fmt.Errorf("[parseStatement] Invalid syntax %v", tokens)
 }
 
 func (p *Parser) parseLetStatement(tokens TokenList) (TreeNode, TokenList, error) {
@@ -496,47 +496,47 @@ func (p *Parser) parseLetStatement(tokens TokenList) (TreeNode, TokenList, error
 	// let keyword
 	next, rest, err := tokens.PopNext()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("[parseLetStatement] %w", err)
 	}
 	mayLetKeyword, ok := next.(KeywordToken)
 	if !ok || mayLetKeyword.String() != "let" {
-		return nil, nil, fmt.Errorf("Invalid keyword %v", tokens)
+		return nil, nil, fmt.Errorf("[parseLetStatement] Invalid keyword %v want let, %v", mayLetKeyword, rest)
 	}
 	res.AppendChild(mayLetKeyword)
 
 	// varName
 	vn, rest, err := p.parseVarName(rest)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("[parseLetStatement] %w", err)
 	}
 	res.AppendChild(vn)
 
 	// array index
 	next, err = rest.LookAt(0)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("[parseLetStatement] %w", err)
 	}
 	mayOpenSqBracket, ok := next.(SymbolToken)
 	if ok && mayOpenSqBracket.String() == "[" {
 		openSqBracket, r, err := rest.PopNext()
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, fmt.Errorf("[parseLetStatement] %w", err)
 		}
 		res.AppendChild(openSqBracket)
 
 		ex, r, err := p.parseExpression(r)
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, fmt.Errorf("[parseLetStatement] %w", err)
 		}
 		res.AppendChild(ex)
 
 		next, r, err = r.PopNext()
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, fmt.Errorf("[parseLetStatement] %w", err)
 		}
 		mayCloseSqBracket, ok := next.(SymbolToken)
 		if !ok || mayCloseSqBracket != "]" {
-			return nil, nil, fmt.Errorf("Invalid symbol %v", r)
+			return nil, nil, fmt.Errorf("[parseLetStatement] Invalid symbol %v want ], %v", mayCloseSqBracket, rest)
 		}
 		res.AppendChild(mayCloseSqBracket)
 
@@ -550,25 +550,25 @@ func (p *Parser) parseLetStatement(tokens TokenList) (TreeNode, TokenList, error
 	}
 	mayEqual, ok := next.(SymbolToken)
 	if !ok || mayEqual.String() != "=" {
-		return nil, nil, fmt.Errorf("Invalid symbol %v", tokens)
+		return nil, nil, fmt.Errorf("[parseLetStatement] Invalid symbol %v want =, %v", mayEqual, rest)
 	}
 	res.AppendChild(mayEqual)
 
 	// expression
 	ex, rest, err := p.parseExpression(rest)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("[parseLetStatement] %w", err)
 	}
 	res.AppendChild(ex)
 
 	// semicolon
 	next, rest, err = rest.PopNext()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("[parseLetStatement] %w", err)
 	}
 	maySemicolon, ok := next.(SymbolToken)
 	if !ok || maySemicolon.String() != ";" {
-		return nil, nil, fmt.Errorf("Invalid symbol %v", tokens)
+		return nil, nil, fmt.Errorf("[parseLetStatement] Invalid symbol %v want ;, %v", maySemicolon, rest)
 	}
 	res.AppendChild(maySemicolon)
 
@@ -581,76 +581,76 @@ func (p *Parser) parseIfStatement(tokens TokenList) (TreeNode, TokenList, error)
 	// if keyword
 	next, rest, err := tokens.PopNext()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("[parseIfStatement] %w", err)
 	}
 	mayIfKeyword, ok := next.(KeywordToken)
 	if !ok || mayIfKeyword.String() != "if" {
-		return nil, nil, fmt.Errorf("Invalid keyword %v", tokens)
+		return nil, nil, fmt.Errorf("[parseIfStatement] Invalid keyword %v want if, %v", mayIfKeyword, rest)
 	}
 	res.AppendChild(mayIfKeyword)
 
 	// open paren
 	next, rest, err = rest.PopNext()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("[parseIfStatement] %w", err)
 	}
 	mayOpenParen, ok := next.(SymbolToken)
 	if !ok || mayOpenParen.String() != "(" {
-		return nil, nil, fmt.Errorf("Invalid keyword %v", tokens)
+		return nil, nil, fmt.Errorf("[parseIfStatement] Invalid keyword %v want (, %v", mayOpenParen, rest)
 	}
 	res.AppendChild(mayOpenParen)
 
 	// expression
 	ex, rest, err := p.parseExpression(rest)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("[parseIfStatement] %w", err)
 	}
 	res.AppendChild(ex)
 
 	// close paren
 	next, rest, err = rest.PopNext()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("[parseIfStatement] %w", err)
 	}
 	mayCloseParen, ok := next.(SymbolToken)
 	if !ok || mayCloseParen.String() != ")" {
-		return nil, nil, fmt.Errorf("Invalid keyword %v", tokens)
+		return nil, nil, fmt.Errorf("[parseIfStatement] Invalid keyword %v want ), %v", mayCloseParen, rest)
 	}
 	res.AppendChild(mayCloseParen)
 
 	// open bracket
 	next, rest, err = rest.PopNext()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("[parseIfStatement] %w", err)
 	}
 	mayOpenBracketIf, ok := next.(SymbolToken)
 	if !ok || mayOpenBracketIf.String() != "{" {
-		return nil, nil, fmt.Errorf("Invalid keyword %v", tokens)
+		return nil, nil, fmt.Errorf("[parseIfStatement] Invalid keyword %v want {, %v", mayOpenBracketIf, rest)
 	}
 	res.AppendChild(mayOpenBracketIf)
 
 	// statement
-	stIf, rest, err := p.parseStatement(rest)
+	stIf, rest, err := p.parseStatements(rest)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("[parseIfStatement] %w", err)
 	}
 	res.AppendChild(stIf)
 
 	// close bracket
 	next, rest, err = rest.PopNext()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("[parseIfStatement] %w", err)
 	}
 	mayCloseBracketIf, ok := next.(SymbolToken)
 	if !ok || mayCloseBracketIf.String() != "}" {
-		return nil, nil, fmt.Errorf("Invalid keyword %v", tokens)
+		return nil, nil, fmt.Errorf("[parseIfStatement] Invalid keyword %v want }, %v", mayCloseBracketIf, rest)
 	}
 	res.AppendChild(mayCloseBracketIf)
 
 	// else keyword
 	next, err = rest.LookAt(0)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("[parseIfStatement] %w", err)
 	}
 	mayElseKeyword, ok := next.(KeywordToken)
 	if !ok || mayElseKeyword.String() != "else" {
@@ -658,36 +658,36 @@ func (p *Parser) parseIfStatement(tokens TokenList) (TreeNode, TokenList, error)
 	}
 	_, rest, err = rest.PopNext()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("[parseIfStatement] %w", err)
 	}
 	res.AppendChild(mayElseKeyword)
 
 	// open bracket
 	next, rest, err = rest.PopNext()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("[parseIfStatement] %w", err)
 	}
 	mayOpenBracketElse, ok := next.(SymbolToken)
 	if !ok || mayOpenBracketElse.String() != "{" {
-		return nil, nil, fmt.Errorf("Invalid keyword %v", tokens)
+		return nil, nil, fmt.Errorf("[parseIfStatement] Invalid keyword %v want {, %v", mayOpenBracketElse, rest)
 	}
 	res.AppendChild(mayOpenBracketElse)
 
 	// statement
-	stElse, rest, err := p.parseStatement(rest)
+	stElse, rest, err := p.parseStatements(rest)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("[parseIfStatement] %w", err)
 	}
 	res.AppendChild(stElse)
 
 	// close bracket
 	next, rest, err = rest.PopNext()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("[parseIfStatement] %w", err)
 	}
 	mayCloseBracketElse, ok := next.(SymbolToken)
 	if !ok || mayCloseBracketElse.String() != "}" {
-		return nil, nil, fmt.Errorf("Invalid keyword %v", tokens)
+		return nil, nil, fmt.Errorf("[parseIfStatement] Invalid keyword %v want }, %v", mayCloseBracketElse, rest)
 	}
 	res.AppendChild(mayCloseBracketElse)
 
@@ -700,69 +700,69 @@ func (p *Parser) parseWhileStatement(tokens TokenList) (TreeNode, TokenList, err
 	// while keyword
 	next, rest, err := tokens.PopNext()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("[parseWhileStatement] %w", err)
 	}
 	mayWhileKeyword, ok := next.(KeywordToken)
 	if !ok || mayWhileKeyword.String() != "while" {
-		return nil, nil, fmt.Errorf("Invalid keyword %v", tokens)
+		return nil, nil, fmt.Errorf("[parseWhileStatement] Invalid keyword %v want while, %v", mayWhileKeyword, rest)
 	}
 	res.AppendChild(mayWhileKeyword)
 
 	// open paren
 	next, rest, err = rest.PopNext()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("[parseWhileStatement] %w", err)
 	}
 	mayOpenParen, ok := next.(SymbolToken)
 	if !ok || mayOpenParen.String() != "(" {
-		return nil, nil, fmt.Errorf("Invalid keyword %v", tokens)
+		return nil, nil, fmt.Errorf("[parseWhileStatement] Invalid keyword %v want (, %v", mayOpenParen, rest)
 	}
 	res.AppendChild(mayOpenParen)
 
 	// expression
 	ex, rest, err := p.parseExpression(rest)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("[parseWhileStatement] %w", err)
 	}
 	res.AppendChild(ex)
 
 	// close paren
 	next, rest, err = rest.PopNext()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("[parseWhileStatement] %w", err)
 	}
 	mayCloseParen, ok := next.(SymbolToken)
 	if !ok || mayCloseParen.String() != ")" {
-		return nil, nil, fmt.Errorf("Invalid keyword %v", tokens)
+		return nil, nil, fmt.Errorf("[parseWhileStatement] Invalid keyword %v want ), %v", mayCloseParen, rest)
 	}
 	res.AppendChild(mayCloseParen)
 
 	// open bracket
 	next, rest, err = rest.PopNext()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("[parseWhileStatement] %w", err)
 	}
 	mayOpenBracket, ok := next.(SymbolToken)
 	if !ok || mayOpenBracket.String() != "{" {
-		return nil, nil, fmt.Errorf("Invalid keyword %v", tokens)
+		return nil, nil, fmt.Errorf("[parseWhileStatement] Invalid keyword %v want {, %v", mayOpenBracket, rest)
 	}
 	res.AppendChild(mayOpenBracket)
 
-	// statement
-	st, rest, err := p.parseStatement(rest)
+	// statements
+	st, rest, err := p.parseStatements(rest)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("[parseWhileStatement] %w", err)
 	}
 	res.AppendChild(st)
 
 	// close bracket
 	next, rest, err = rest.PopNext()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("[parseWhileStatement] %w", err)
 	}
 	mayCloseBracket, ok := next.(SymbolToken)
 	if !ok || mayCloseBracket.String() != "}" {
-		return nil, nil, fmt.Errorf("Invalid keyword %v", tokens)
+		return nil, nil, fmt.Errorf("[parseWhileStatement] Invalid keyword %v want }, %v", mayCloseBracket, rest)
 	}
 	res.AppendChild(mayCloseBracket)
 
@@ -775,27 +775,27 @@ func (p *Parser) parseDoStatement(tokens TokenList) (TreeNode, TokenList, error)
 	// do keyword
 	next, rest, err := tokens.PopNext()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("[parseDoStatement] %w", err)
 	}
 	mayDoKeyword, ok := next.(KeywordToken)
 	if !ok || mayDoKeyword.String() != "do" {
-		return nil, nil, fmt.Errorf("Invalid keyword %v", tokens)
+		return nil, nil, fmt.Errorf("[parseDoStatement] Invalid keyword %v want do, %v", mayDoKeyword, rest)
 	}
 
 	// subroutine call
 	sc, rest, err := p.parseSubroutineCall(rest)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("[parseDoStatement] %w", err)
 	}
 
 	// semicolon
 	next, rest, err = rest.PopNext()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("[parseDoStatement] %w", err)
 	}
 	maySemicolon, ok := next.(SymbolToken)
 	if !ok || maySemicolon.String() != ";" {
-		return nil, nil, fmt.Errorf("Invalid symbol %v", next)
+		return nil, nil, fmt.Errorf("[parseDoStatement] Invalid symbol %v want ;, %v", maySemicolon, rest)
 	}
 
 	res.AppendChild(mayDoKeyword)
@@ -811,11 +811,11 @@ func (p *Parser) parseReturnStatement(tokens TokenList) (TreeNode, TokenList, er
 	// return keyword
 	next, rest, err := tokens.PopNext()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("[parseReturnStatement] %w", err)
 	}
 	mayReturn, ok := next.(KeywordToken)
 	if !ok || mayReturn.String() != "return" {
-		return nil, nil, fmt.Errorf("Invalid keyword %v", tokens)
+		return nil, nil, fmt.Errorf("[parseReturnStatement] Invalid keyword %v want return, %v", mayReturn, rest)
 	}
 
 	// expression
@@ -827,11 +827,11 @@ func (p *Parser) parseReturnStatement(tokens TokenList) (TreeNode, TokenList, er
 	// `;` symbol
 	next, rest, err = rest.PopNext()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("[parseReturnStatement] %w", err)
 	}
 	maySemicolon, ok := next.(SymbolToken)
 	if !ok || maySemicolon.String() != ";" {
-		return nil, nil, fmt.Errorf("Invalid symbol %v", next)
+		return nil, nil, fmt.Errorf("[parseReturnStatement] Invalid symbol %v want ;, %v", maySemicolon, rest)
 	}
 
 	res.AppendChild(mayReturn)
@@ -844,12 +844,29 @@ func (p *Parser) parseReturnStatement(tokens TokenList) (TreeNode, TokenList, er
 }
 
 func (p *Parser) parseExpression(tokens TokenList) (TreeNode, TokenList, error) {
-	tm, rest, err := p.parseTerm(tokens)
-	if err != nil {
-		return nil, nil, err
-	}
 	res := NewExpressionNode()
-	res.AppendChild(tm)
+
+	// first term
+	t1, rest, err := p.parseTerm(tokens)
+	if err != nil {
+		return nil, nil, fmt.Errorf("[parseExpression] %w", err)
+	}
+	res.AppendChild(t1)
+
+	// op (optional)
+	mayOp, rest2, err := p.parseOp(rest)
+	if err != nil {
+		return res, rest, nil
+	}
+	res.AppendChild(mayOp)
+
+	// second term if op exists
+	t2, rest, err := p.parseTerm(rest2)
+	if err != nil {
+		return nil, nil, fmt.Errorf("[parseExpression] %w", err)
+	}
+	res.AppendChild(t2)
+
 	return res, rest, nil
 }
 
@@ -858,7 +875,7 @@ func (p *Parser) parseTerm(tokens TokenList) (TreeNode, TokenList, error) {
 
 	next, rest, err := tokens.PopNext()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("[parseTerm] %w", err)
 	}
 
 	// Int and string constant
@@ -881,7 +898,7 @@ func (p *Parser) parseTerm(tokens TokenList) (TreeNode, TokenList, error) {
 		// VarName only
 		next, err := rest.LookAt(0)
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, fmt.Errorf("[parseTerm] %w", err)
 		}
 		mayOpenSqBracket, ok := next.(SymbolToken)
 		if !ok || mayOpenSqBracket.String() != "[" {
@@ -891,19 +908,19 @@ func (p *Parser) parseTerm(tokens TokenList) (TreeNode, TokenList, error) {
 		// Array index
 		_, rest, err := rest.PopNext()
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, fmt.Errorf("[parseTerm] %w", err)
 		}
 		ex, rest, err := p.parseExpression(rest)
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, fmt.Errorf("[parseTerm] %w", err)
 		}
 		next, rest, err = rest.PopNext()
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, fmt.Errorf("[parseTerm] %w", err)
 		}
 		mayCloseSqBracket, ok := next.(SymbolToken)
 		if !ok || mayCloseSqBracket.String() != "]" {
-			return nil, nil, fmt.Errorf("Invalid symbol %v", rest)
+			return nil, nil, fmt.Errorf("[parseTerm] Invalid symbol %v want ], %v", mayCloseSqBracket, rest)
 		}
 		res.AppendChild(mayOpenSqBracket)
 		res.AppendChild(ex)
@@ -921,11 +938,11 @@ func (p *Parser) parseTerm(tokens TokenList) (TreeNode, TokenList, error) {
 	if mayOpenParen, ok := next.(SymbolToken); ok && mayOpenParen.String() == "(" {
 		ex, rest, err := p.parseExpression(rest)
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, fmt.Errorf("[parseTerm] %w", err)
 		}
 		mayCloseParen, ok := rest[0].(SymbolToken)
 		if !ok || mayCloseParen.String() != ")" {
-			return nil, nil, fmt.Errorf("Invalid symbol %v", rest)
+			return nil, nil, fmt.Errorf("[[arseTerm]] Invalid symbol %v want ), %v", mayCloseParen, rest)
 		}
 		res.AppendChild(mayOpenParen)
 		res.AppendChild(ex)
@@ -938,7 +955,7 @@ func (p *Parser) parseTerm(tokens TokenList) (TreeNode, TokenList, error) {
 	if uo, rest, err := p.parseUnaryOp(tokens); err == nil {
 		tm, rest, err := p.parseTerm(rest)
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, fmt.Errorf("[parseTerm] %w", err)
 		}
 		res.AppendChild(uo)
 		res.AppendChild(tm)
@@ -953,11 +970,11 @@ func (p *Parser) parseSubroutineCall(tokens TokenList) (TreeNode, TokenList, err
 
 	next, err := tokens.LookAt(1)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("[parseSubroutineCall] %w", err)
 	}
 	del, ok := next.(SymbolToken)
 	if !ok || (del.String() != "(" && del.String() != ".") {
-		return nil, nil, fmt.Errorf("Invalid symbol %v", tokens)
+		return nil, nil, fmt.Errorf("[parseSubroutineCall] Invalid symbol %v want ((|.)), %v", del, tokens)
 	}
 
 	// method call
@@ -965,15 +982,15 @@ func (p *Parser) parseSubroutineCall(tokens TokenList) (TreeNode, TokenList, err
 	if del.String() == "." {
 		cn, innerRest, err := p.parseClassName(rest) // TODO: how to detect className or varName
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, fmt.Errorf("[parseSubroutineCall] %w", err)
 		}
-		next, innerRest2, err := tokens.PopNext()
+		next, innerRest2, err := innerRest.PopNext()
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, fmt.Errorf("[parseSubroutineCall] %w", err)
 		}
 		mayDot, ok := next.(SymbolToken)
 		if !ok || mayDot != "." {
-			return nil, nil, fmt.Errorf("Invalid symbol %v", innerRest)
+			return nil, nil, fmt.Errorf("[parseSubroutineCall] Invalid symbol %v want ., %v", mayDot, innerRest)
 		}
 		rest = innerRest2
 		res.AppendChild(cn)
@@ -983,27 +1000,27 @@ func (p *Parser) parseSubroutineCall(tokens TokenList) (TreeNode, TokenList, err
 	// function call
 	sn, rest, err := p.parseSubroutineName(rest)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("[parseSubroutineCall] %w", err)
 	}
 	next, rest, err = rest.PopNext()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("[parseSubroutineCall] %w", err)
 	}
 	mayOpenParen, ok := next.(SymbolToken)
 	if !ok || mayOpenParen != "(" {
-		return nil, nil, fmt.Errorf("Invalid symbol %v", rest)
+		return nil, nil, fmt.Errorf("[parseSubroutineCall] Invalid symbol %v want (, %v", mayOpenParen, rest)
 	}
 	el, rest, err := p.parseExpressionList(rest)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("[parseSubroutineCall] %w", err)
 	}
 	next, rest, err = rest.PopNext()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("[parseSubroutineCall] %w", err)
 	}
 	mayCloseParen, ok := next.(SymbolToken)
 	if !ok || mayCloseParen != ")" {
-		return nil, nil, fmt.Errorf("Invalid symbol %v", rest)
+		return nil, nil, fmt.Errorf("[parseSubroutineCall] Invalid symbol %v want ), %v", mayCloseParen, rest)
 	}
 	res.AppendChild(sn)
 	res.AppendChild(mayOpenParen)
@@ -1019,7 +1036,7 @@ func (p *Parser) parseExpressionList(tokens TokenList) (TreeNode, TokenList, err
 		if len(res.ChildNodes()) > 0 {
 			next, r, err := rest.PopNext()
 			if err != nil {
-				return nil, nil, err
+				return nil, nil, fmt.Errorf("[parseExpressionList] %w", err)
 			}
 			mayComma, ok := next.(SymbolToken)
 			if !ok || mayComma.String() != "," {
@@ -1041,11 +1058,11 @@ func (p *Parser) parseExpressionList(tokens TokenList) (TreeNode, TokenList, err
 func (p *Parser) parseOp(tokens TokenList) (TreeNode, TokenList, error) {
 	next, rest, err := tokens.PopNext()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("[parseOp] %w", err)
 	}
 	cur, ok := next.(SymbolToken)
 	if !ok {
-		return nil, nil, fmt.Errorf("Type mismatch %v", tokens)
+		return nil, nil, fmt.Errorf("[parseOp] Type mismatch %v want SymbolToken, %v", cur, rest)
 	}
 	ok = false
 	switch cur.String() {
@@ -1053,7 +1070,7 @@ func (p *Parser) parseOp(tokens TokenList) (TreeNode, TokenList, error) {
 		ok = true
 	}
 	if !ok {
-		return nil, nil, fmt.Errorf("Invalid keyword %v", tokens)
+		return nil, nil, fmt.Errorf("[parseOp] Invalid keyword %v want (+|-|*|/|&|||<|>|=), %v", cur, rest)
 	}
 	on := NewOpNode()
 	on.AppendChild(cur)
@@ -1063,14 +1080,11 @@ func (p *Parser) parseOp(tokens TokenList) (TreeNode, TokenList, error) {
 func (p *Parser) parseUnaryOp(tokens TokenList) (TreeNode, TokenList, error) {
 	next, rest, err := tokens.PopNext()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("[parseUnaryOp] %w", err)
 	}
 	cur, ok := next.(SymbolToken)
-	if !ok {
-		return nil, nil, fmt.Errorf("Type mismatch %v", tokens)
-	}
-	if cur.String() != "-" && cur.String() != "~" {
-		return nil, nil, fmt.Errorf("Invalid keyword %v", tokens)
+	if !ok || (cur.String() != "-" && cur.String() != "~") {
+		return nil, nil, fmt.Errorf("[parseUnaryOp] Invalid symbol %v want (-|~), %v", cur, rest)
 	}
 	uon := NewUnaryOpNode()
 	uon.AppendChild(cur)
@@ -1080,14 +1094,11 @@ func (p *Parser) parseUnaryOp(tokens TokenList) (TreeNode, TokenList, error) {
 func (p *Parser) parseKeywordConstant(tokens TokenList) (TreeNode, TokenList, error) {
 	next, rest, err := tokens.PopNext()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("[parseKeywordConstant] %w", err)
 	}
 	cur, ok := next.(KeywordToken)
-	if !ok {
-		return nil, nil, fmt.Errorf("Type mismatch %v", tokens)
-	}
-	if cur.String() != "true" && cur.String() != "false" && cur.String() != "null" && cur.String() != "this" {
-		return nil, nil, fmt.Errorf("Invalid keyword %v", tokens)
+	if !ok || (cur.String() != "true" && cur.String() != "false" && cur.String() != "null" && cur.String() != "this") {
+		return nil, nil, fmt.Errorf("[parseKeywordConstant] Invalid keyword %v want (true|false|null|this), %v", cur, rest)
 	}
 	kc := NewKeyConstNode()
 	kc.AppendChild(cur)

@@ -413,6 +413,28 @@ func TestParser_parseExpression(t *testing.T) {
 			},
 			wantErr: false,
 		},
+		{
+			name: "op",
+			args: args{[]Token{
+				IdentifierToken("x"),
+				SymbolToken("|"),
+				IdentifierToken("y"),
+				SymbolToken(";"),
+			}},
+			want: MockNodes([]Token{
+				MockNodes([]Token{
+					MockNodes([]Token{IdentifierToken("x")}, VarNameType, true),
+				}, TermType, false),
+				MockNodes([]Token{SymbolToken("|")}, OpType, true),
+				MockNodes([]Token{
+					MockNodes([]Token{IdentifierToken("y")}, VarNameType, true),
+				}, TermType, false),
+			}, ExpressionType, false),
+			want1: []Token{
+				SymbolToken(";"),
+			},
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -867,6 +889,11 @@ func TestParser_parseWhileStatement(t *testing.T) {
 				SymbolToken("("),
 				SymbolToken(")"),
 				SymbolToken(";"),
+				KeywordToken("do"),
+				IdentifierToken("MyFunc"),
+				SymbolToken("("),
+				SymbolToken(")"),
+				SymbolToken(";"),
 				SymbolToken("}"),
 				KeywordToken("return"),
 			}},
@@ -882,16 +909,30 @@ func TestParser_parseWhileStatement(t *testing.T) {
 				SymbolToken("{"),
 				MockNodes([]Token{
 					MockNodes([]Token{
-						KeywordToken("do"),
 						MockNodes([]Token{
-							MockNodes([]Token{IdentifierToken("MyFunc")}, SubroutineNameType, true),
-							SymbolToken("("),
-							MockNodes(nil, ExpressionListType, false),
-							SymbolToken(")"),
-						}, SubroutineCallType, true),
-						SymbolToken(";"),
-					}, DoStatementType, false),
-				}, StatementType, true),
+							KeywordToken("do"),
+							MockNodes([]Token{
+								MockNodes([]Token{IdentifierToken("MyFunc")}, SubroutineNameType, true),
+								SymbolToken("("),
+								MockNodes(nil, ExpressionListType, false),
+								SymbolToken(")"),
+							}, SubroutineCallType, true),
+							SymbolToken(";"),
+						}, DoStatementType, false),
+					}, StatementType, true),
+					MockNodes([]Token{
+						MockNodes([]Token{
+							KeywordToken("do"),
+							MockNodes([]Token{
+								MockNodes([]Token{IdentifierToken("MyFunc")}, SubroutineNameType, true),
+								SymbolToken("("),
+								MockNodes(nil, ExpressionListType, false),
+								SymbolToken(")"),
+							}, SubroutineCallType, true),
+							SymbolToken(";"),
+						}, DoStatementType, false),
+					}, StatementType, true),
+				}, StatementsType, false),
 				SymbolToken("}"),
 			}, WhileStatementType, false),
 			want1: []Token{
@@ -938,6 +979,11 @@ func TestParser_parseIfStatement(t *testing.T) {
 				IdentifierToken("x"),
 				SymbolToken(")"),
 				SymbolToken("{"),
+				KeywordToken("let"),
+				IdentifierToken("x"),
+				SymbolToken("="),
+				IntConstToken(100),
+				SymbolToken(";"),
 				KeywordToken("do"),
 				IdentifierToken("MyFunc"),
 				SymbolToken("("),
@@ -958,16 +1004,29 @@ func TestParser_parseIfStatement(t *testing.T) {
 				SymbolToken("{"),
 				MockNodes([]Token{
 					MockNodes([]Token{
-						KeywordToken("do"),
 						MockNodes([]Token{
-							MockNodes([]Token{IdentifierToken("MyFunc")}, SubroutineNameType, true),
-							SymbolToken("("),
-							MockNodes(nil, ExpressionListType, false),
-							SymbolToken(")"),
-						}, SubroutineCallType, true),
-						SymbolToken(";"),
-					}, DoStatementType, false),
-				}, StatementType, true),
+							KeywordToken("let"),
+							MockNodes([]Token{IdentifierToken("x")}, VarNameType, true),
+							SymbolToken("="),
+							MockNodes([]Token{
+								MockNodes([]Token{IntConstToken(100)}, TermType, false),
+							}, ExpressionType, false),
+							SymbolToken(";"),
+						}, LetStatementType, false),
+					}, StatementType, true),
+					MockNodes([]Token{
+						MockNodes([]Token{
+							KeywordToken("do"),
+							MockNodes([]Token{
+								MockNodes([]Token{IdentifierToken("MyFunc")}, SubroutineNameType, true),
+								SymbolToken("("),
+								MockNodes(nil, ExpressionListType, false),
+								SymbolToken(")"),
+							}, SubroutineCallType, true),
+							SymbolToken(";"),
+						}, DoStatementType, false),
+					}, StatementType, true),
+				}, StatementsType, false),
 				SymbolToken("}"),
 			}, IfStatementType, false),
 			want1: []Token{
@@ -991,6 +1050,11 @@ func TestParser_parseIfStatement(t *testing.T) {
 				SymbolToken("}"),
 				KeywordToken("else"),
 				SymbolToken("{"),
+				KeywordToken("let"),
+				IdentifierToken("x"),
+				SymbolToken("="),
+				IntConstToken(100),
+				SymbolToken(";"),
 				KeywordToken("do"),
 				IdentifierToken("MyFuncElse"),
 				SymbolToken("("),
@@ -1011,31 +1075,46 @@ func TestParser_parseIfStatement(t *testing.T) {
 				SymbolToken("{"),
 				MockNodes([]Token{
 					MockNodes([]Token{
-						KeywordToken("do"),
 						MockNodes([]Token{
-							MockNodes([]Token{IdentifierToken("MyFunc")}, SubroutineNameType, true),
-							SymbolToken("("),
-							MockNodes(nil, ExpressionListType, false),
-							SymbolToken(")"),
-						}, SubroutineCallType, true),
-						SymbolToken(";"),
-					}, DoStatementType, false),
-				}, StatementType, true),
+							KeywordToken("do"),
+							MockNodes([]Token{
+								MockNodes([]Token{IdentifierToken("MyFunc")}, SubroutineNameType, true),
+								SymbolToken("("),
+								MockNodes(nil, ExpressionListType, false),
+								SymbolToken(")"),
+							}, SubroutineCallType, true),
+							SymbolToken(";"),
+						}, DoStatementType, false),
+					}, StatementType, true),
+				}, StatementsType, false),
 				SymbolToken("}"),
 				KeywordToken("else"),
 				SymbolToken("{"),
 				MockNodes([]Token{
 					MockNodes([]Token{
-						KeywordToken("do"),
 						MockNodes([]Token{
-							MockNodes([]Token{IdentifierToken("MyFuncElse")}, SubroutineNameType, true),
-							SymbolToken("("),
-							MockNodes(nil, ExpressionListType, false),
-							SymbolToken(")"),
-						}, SubroutineCallType, true),
-						SymbolToken(";"),
-					}, DoStatementType, false),
-				}, StatementType, true),
+							KeywordToken("let"),
+							MockNodes([]Token{IdentifierToken("x")}, VarNameType, true),
+							SymbolToken("="),
+							MockNodes([]Token{
+								MockNodes([]Token{IntConstToken(100)}, TermType, false),
+							}, ExpressionType, false),
+							SymbolToken(";"),
+						}, LetStatementType, false),
+					}, StatementType, true),
+					MockNodes([]Token{
+						MockNodes([]Token{
+							KeywordToken("do"),
+							MockNodes([]Token{
+								MockNodes([]Token{IdentifierToken("MyFuncElse")}, SubroutineNameType, true),
+								SymbolToken("("),
+								MockNodes(nil, ExpressionListType, false),
+								SymbolToken(")"),
+							}, SubroutineCallType, true),
+							SymbolToken(";"),
+						}, DoStatementType, false),
+					}, StatementType, true),
+				}, StatementsType, false),
 				SymbolToken("}"),
 			}, IfStatementType, false),
 			want1: []Token{
@@ -1214,6 +1293,7 @@ func TestParser_parseStatements(t *testing.T) {
 				IntConstToken(200),
 				SymbolToken(";"),
 				KeywordToken("return"),
+				SymbolToken(";"),
 			}},
 			want: MockNodes([]Token{
 				MockNodes([]Token{
@@ -1238,10 +1318,14 @@ func TestParser_parseStatements(t *testing.T) {
 						SymbolToken(";"),
 					}, LetStatementType, false),
 				}, StatementType, true),
+				MockNodes([]Token{
+					MockNodes([]Token{
+						KeywordToken("return"),
+						SymbolToken(";"),
+					}, ReturnStatementType, false),
+				}, StatementType, true),
 			}, StatementsType, false),
-			want1: []Token{
-				KeywordToken("return"),
-			},
+			want1:   []Token{},
 			wantErr: false,
 		},
 	}
