@@ -891,47 +891,67 @@ func (p *Parser) parseTerm(tokens TokenList) (TreeNode, TokenList, error) {
 		return res, rest, nil
 	}
 
-	// VarName
-	if vn, rest, err := p.parseVarName(tokens); err == nil {
-		res.AppendChild(vn)
-
-		// VarName only
-		next, err := rest.LookAt(0)
-		if err != nil {
-			return nil, nil, fmt.Errorf("[parseTerm] %w", err)
+	isSubCall := false
+	next, err = tokens.LookAt(0)
+	if err != nil {
+		return nil, nil, fmt.Errorf("[parseTerm] %w", err)
+	}
+	_, mayVarNameOrSub := next.(IdentifierToken)
+	if mayVarNameOrSub {
+		next, err := tokens.LookAt(1)
+		if err == nil {
+			mayFuncCall, ok := next.(SymbolToken)
+			if ok && (mayFuncCall.String() == "(" || mayFuncCall.String() == ".") {
+				isSubCall = true
+			}
 		}
-		mayOpenSqBracket, ok := next.(SymbolToken)
-		if !ok || mayOpenSqBracket.String() != "[" {
-			return res, rest, nil
-		}
-
-		// Array index
-		_, rest, err := rest.PopNext()
-		if err != nil {
-			return nil, nil, fmt.Errorf("[parseTerm] %w", err)
-		}
-		ex, rest, err := p.parseExpression(rest)
-		if err != nil {
-			return nil, nil, fmt.Errorf("[parseTerm] %w", err)
-		}
-		next, rest, err = rest.PopNext()
-		if err != nil {
-			return nil, nil, fmt.Errorf("[parseTerm] %w", err)
-		}
-		mayCloseSqBracket, ok := next.(SymbolToken)
-		if !ok || mayCloseSqBracket.String() != "]" {
-			return nil, nil, fmt.Errorf("[parseTerm] Invalid symbol %v want ], %v", mayCloseSqBracket, rest)
-		}
-		res.AppendChild(mayOpenSqBracket)
-		res.AppendChild(ex)
-		res.AppendChild(mayCloseSqBracket)
-		return res, rest, nil
 	}
 
-	// todo: subroutineCall
-	if sc, rest, err := p.parseSubroutineCall(tokens); err == nil {
-		res.AppendChild(sc)
-		return res, rest, nil
+	// VarName
+	if mayVarNameOrSub && !isSubCall {
+		if vn, rest, err := p.parseVarName(tokens); err == nil {
+			res.AppendChild(vn)
+
+			// VarName only
+			next, err := rest.LookAt(0)
+			if err != nil {
+				return nil, nil, fmt.Errorf("[parseTerm] %w", err)
+			}
+			mayOpenSqBracket, ok := next.(SymbolToken)
+			if !ok || mayOpenSqBracket.String() != "[" {
+				return res, rest, nil
+			}
+
+			// Array index
+			_, rest, err := rest.PopNext()
+			if err != nil {
+				return nil, nil, fmt.Errorf("[parseTerm] %w", err)
+			}
+			ex, rest, err := p.parseExpression(rest)
+			if err != nil {
+				return nil, nil, fmt.Errorf("[parseTerm] %w", err)
+			}
+			next, rest, err = rest.PopNext()
+			if err != nil {
+				return nil, nil, fmt.Errorf("[parseTerm] %w", err)
+			}
+			mayCloseSqBracket, ok := next.(SymbolToken)
+			if !ok || mayCloseSqBracket.String() != "]" {
+				return nil, nil, fmt.Errorf("[parseTerm] Invalid symbol %v want ], %v", mayCloseSqBracket, rest)
+			}
+			res.AppendChild(mayOpenSqBracket)
+			res.AppendChild(ex)
+			res.AppendChild(mayCloseSqBracket)
+			return res, rest, nil
+		}
+	}
+
+	// subroutineCall
+	if mayVarNameOrSub && isSubCall {
+		if sc, rest, err := p.parseSubroutineCall(tokens); err == nil {
+			res.AppendChild(sc)
+			return res, rest, nil
+		}
 	}
 
 	// expression enclosed in paren
