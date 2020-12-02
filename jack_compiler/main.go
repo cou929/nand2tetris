@@ -29,14 +29,14 @@ func main() {
 	for _, f := range files {
 		reader, err := os.Open(f)
 		if err != nil {
-			log.Fatal(err)
+			log.Fatal(err, f)
 		}
 		defer reader.Close()
 
 		tokenizer := NewTokenizer(reader)
 		tokens, err := tokenizer.Tokenize()
 		if err != nil {
-			log.Fatal(err)
+			log.Fatal(err, f)
 		}
 
 		if tokenize {
@@ -50,11 +50,11 @@ func main() {
 			n := fmt.Sprintf("%sT.out.xml", f[0:len(f)-len(e)])
 			w, err := os.Create(n)
 			if err != nil {
-				log.Fatal(err)
+				log.Fatal(err, f)
 			}
 			_, err = w.WriteString(xml)
 			if err != nil {
-				log.Fatal(err)
+				log.Fatal(err, f)
 			}
 
 			continue
@@ -63,7 +63,7 @@ func main() {
 		parser := NewParser()
 		tree, err := parser.Parse(tokens)
 		if err != nil {
-			log.Fatal(err)
+			log.Fatal(err, f)
 		}
 
 		xml := tree.Xml()
@@ -75,11 +75,11 @@ func main() {
 		n := fmt.Sprintf("%s.out.xml", f[0:len(f)-len(e)])
 		w, err := os.Create(n)
 		if err != nil {
-			log.Fatal(err)
+			log.Fatal(err, f)
 		}
 		_, err = w.WriteString(xml)
 		if err != nil {
-			log.Fatal(err)
+			log.Fatal(err, f)
 		}
 	}
 }
