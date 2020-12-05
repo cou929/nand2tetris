@@ -2,10 +2,15 @@ package main
 
 import "fmt"
 
-type Parser struct{}
+type Parser struct {
+	symbolTable *SymbolTable
+}
 
 func NewParser() *Parser {
-	return nil
+	st := NewSymbolTable()
+	return &Parser{
+		symbolTable: st,
+	}
 }
 
 func (p *Parser) Parse(tokens []Token) (*InnerNode, error) {
@@ -21,6 +26,7 @@ func (p *Parser) Parse(tokens []Token) (*InnerNode, error) {
 
 func (p *Parser) parseClass(tokens TokenList) (*InnerNode, TokenList, error) {
 	res := NewClassNode()
+	p.symbolTable.Clear()
 
 	// class keyword
 	mayClassKeyword, rest, err := tokens.PopNext()
@@ -38,6 +44,9 @@ func (p *Parser) parseClass(tokens TokenList) (*InnerNode, TokenList, error) {
 		return nil, nil, fmt.Errorf("[parseClass] %w", err)
 	}
 	res.AppendChild(cn)
+	if err := p.SetOneChildMeta(cn, res); err != nil {
+		return nil, nil, fmt.Errorf("[parseClass] %w", err)
+	}
 
 	// open bracket
 	mayOpenBracket, rest, err := rest.PopNext()
@@ -108,6 +117,11 @@ func (p *Parser) parseClassVarDec(tokens TokenList) (*InnerNode, TokenList, erro
 		return nil, nil, fmt.Errorf("[parseClassVarDec] %w", err)
 	}
 	res.AppendChild(v)
+	kind, _ := NewVarKind(mayClassVarType.Value()) // no error guaranteed
+	p.symbolTable.Define(v.Value(), typ.Value(), kind)
+	if err := p.SetOneChildMeta(v, res); err != nil {
+		return nil, nil, fmt.Errorf("[parseClassVarDec] %w", err)
+	}
 
 	// following vars
 	for true {
@@ -129,6 +143,10 @@ func (p *Parser) parseClassVarDec(tokens TokenList) (*InnerNode, TokenList, erro
 		res.AppendChild(mayComma)
 		res.AppendChild(v)
 		rest = r
+		p.symbolTable.Define(v.Value(), typ.Value(), kind)
+		if err := p.SetOneChildMeta(v, res); err != nil {
+			return nil, nil, fmt.Errorf("[parseClassVarDec] %w", err)
+		}
 	}
 
 	// semicolon
@@ -144,7 +162,7 @@ func (p *Parser) parseClassVarDec(tokens TokenList) (*InnerNode, TokenList, erro
 	return res, rest, nil
 }
 
-func (p *Parser) parseType(tokens TokenList) (*InnerNode, TokenList, error) {
+func (p *Parser) parseType(tokens TokenList) (*OneChildNode, TokenList, error) {
 	res := NewTypeNode()
 
 	mayKw, rest, err := tokens.PopNext()
@@ -165,11 +183,16 @@ func (p *Parser) parseType(tokens TokenList) (*InnerNode, TokenList, error) {
 		return nil, nil, fmt.Errorf("[parseType] %w", err)
 	}
 	res.AppendChild(n)
+	if err := p.SetOneChildMeta(n, res); err != nil {
+		return nil, nil, fmt.Errorf("[parseType] %w", err)
+	}
+
 	return res, rest, nil
 }
 
 func (p *Parser) parseSubroutineDec(tokens TokenList) (*InnerNode, TokenList, error) {
 	res := NewSubroutineDecNode()
+	p.symbolTable.ClearFuncTable()
 
 	// func type
 	mayFuncType, rest, err := tokens.PopNext()
@@ -208,6 +231,9 @@ func (p *Parser) parseSubroutineDec(tokens TokenList) (*InnerNode, TokenList, er
 		return nil, nil, fmt.Errorf("[parseSubroutineDec] %w", err)
 	}
 	res.AppendChild(sn)
+	if err := p.SetOneChildMeta(sn, res); err != nil {
+		return nil, nil, fmt.Errorf("[parseSubroutineDec] %w", err)
+	}
 
 	// open paren
 	mayOpenParen, rest, err := rest.PopNext()
@@ -277,6 +303,10 @@ func (p *Parser) parseParameterList(tokens TokenList) (*InnerNode, TokenList, er
 		res.AppendChild(t)
 		res.AppendChild(n)
 		rest = r
+		p.symbolTable.Define(n.Value(), t.Value(), Argument)
+		if err := p.SetOneChildMeta(n, res); err != nil {
+			return nil, nil, fmt.Errorf("[parseClassVarDec] %w", err)
+		}
 	}
 
 	return res, rest, nil
@@ -351,6 +381,10 @@ func (p *Parser) parseVarDec(tokens TokenList) (*InnerNode, TokenList, error) {
 		return nil, nil, fmt.Errorf("[parseVarDec] %w", err)
 	}
 	res.AppendChild(v)
+	p.symbolTable.Define(v.Value(), typ.Value(), Var)
+	if err := p.SetOneChildMeta(v, res); err != nil {
+		return nil, nil, fmt.Errorf("[parseClassVarDec] %w", err)
+	}
 
 	// following vars
 	for true {
@@ -372,6 +406,10 @@ func (p *Parser) parseVarDec(tokens TokenList) (*InnerNode, TokenList, error) {
 		res.AppendChild(mayComma)
 		res.AppendChild(v)
 		rest = r
+		p.symbolTable.Define(v.Value(), typ.Value(), Var)
+		if err := p.SetOneChildMeta(v, res); err != nil {
+			return nil, nil, fmt.Errorf("[parseClassVarDec] %w", err)
+		}
 	}
 
 	// semicolon
@@ -387,7 +425,7 @@ func (p *Parser) parseVarDec(tokens TokenList) (*InnerNode, TokenList, error) {
 	return res, rest, nil
 }
 
-func (p *Parser) parseClassName(tokens TokenList) (*InnerNode, TokenList, error) {
+func (p *Parser) parseClassName(tokens TokenList) (*OneChildNode, TokenList, error) {
 	next, rest, err := tokens.PopNext()
 	if err != nil {
 		return nil, nil, fmt.Errorf("[parseClassName] %w", err)
@@ -400,7 +438,7 @@ func (p *Parser) parseClassName(tokens TokenList) (*InnerNode, TokenList, error)
 	return cn, rest, nil
 }
 
-func (p *Parser) parseSubroutineName(tokens TokenList) (*InnerNode, TokenList, error) {
+func (p *Parser) parseSubroutineName(tokens TokenList) (*OneChildNode, TokenList, error) {
 	next, rest, err := tokens.PopNext()
 	if err != nil {
 		return nil, nil, fmt.Errorf("[parseSubroutineName] %w", err)
@@ -413,7 +451,7 @@ func (p *Parser) parseSubroutineName(tokens TokenList) (*InnerNode, TokenList, e
 	return sn, rest, nil
 }
 
-func (p *Parser) parseVarName(tokens TokenList) (*InnerNode, TokenList, error) {
+func (p *Parser) parseVarName(tokens TokenList) (*OneChildNode, TokenList, error) {
 	next, rest, err := tokens.PopNext()
 	if err != nil {
 		return nil, nil, fmt.Errorf("[parseVarName] %w", err)
@@ -492,6 +530,9 @@ func (p *Parser) parseLetStatement(tokens TokenList) (*InnerNode, TokenList, err
 		return nil, nil, fmt.Errorf("[parseLetStatement] %w", err)
 	}
 	res.AppendChild(vn)
+	if err := p.SetOneChildMeta(vn, res); err != nil {
+		return nil, nil, fmt.Errorf("[parseClassVarDec] %w", err)
+	}
 
 	// array index
 	mayOpenSqBracket, err := rest.LookAt(0)
@@ -870,6 +911,9 @@ func (p *Parser) parseTerm(tokens TokenList) (*InnerNode, TokenList, error) {
 	if mayVarNameOrSub.Type() == IdentifierType && !isSubCall {
 		if vn, rest, err := p.parseVarName(tokens); err == nil {
 			res.AppendChild(vn)
+			if err := p.SetOneChildMeta(vn, res); err != nil {
+				return nil, nil, fmt.Errorf("[parseClassVarDec] %w", err)
+			}
 
 			// VarName only
 			mayOpenSqBracket, err := rest.LookAt(0)
@@ -956,9 +1000,22 @@ func (p *Parser) parseSubroutineCall(tokens TokenList) (*InnerNode, TokenList, e
 	// method call
 	rest := tokens
 	if del.Value() == "." {
-		cn, innerRest, err := p.parseClassName(rest) // TODO: how to detect className or varName
-		if err != nil {
-			return nil, nil, fmt.Errorf("[parseSubroutineCall] %w", err)
+		var classOrVarName *OneChildNode
+		var innerRest TokenList
+		n, _ := rest.LookAt(0) // no error guaranteed
+		if p.symbolTable.LookUp(n.Value()) != nil {
+			classOrVarName, innerRest, err = p.parseVarName(rest)
+			if err != nil {
+				return nil, nil, fmt.Errorf("[parseSubroutineCall] %w", err)
+			}
+		} else {
+			classOrVarName, innerRest, err = p.parseClassName(rest)
+			if err != nil {
+				return nil, nil, fmt.Errorf("[parseSubroutineCall] %w", err)
+			}
+		}
+		if err := p.SetOneChildMeta(classOrVarName, res); err != nil {
+			return nil, nil, fmt.Errorf("[parseClass] %w", err)
 		}
 		mayDot, innerRest2, err := innerRest.PopNext()
 		if err != nil {
@@ -968,13 +1025,16 @@ func (p *Parser) parseSubroutineCall(tokens TokenList) (*InnerNode, TokenList, e
 			return nil, nil, fmt.Errorf("[parseSubroutineCall] Invalid symbol %v want ., %v", mayDot, innerRest)
 		}
 		rest = innerRest2
-		res.AppendChild(cn)
+		res.AppendChild(classOrVarName)
 		res.AppendChild(mayDot)
 	}
 
 	// function call
 	sn, rest, err := p.parseSubroutineName(rest)
 	if err != nil {
+		return nil, nil, fmt.Errorf("[parseSubroutineCall] %w", err)
+	}
+	if err := p.SetOneChildMeta(sn, res); err != nil {
 		return nil, nil, fmt.Errorf("[parseSubroutineCall] %w", err)
 	}
 	mayOpenParen, rest, err := rest.PopNext()
@@ -1027,7 +1087,7 @@ func (p *Parser) parseExpressionList(tokens TokenList) (*InnerNode, TokenList, e
 	return res, rest, nil
 }
 
-func (p *Parser) parseOp(tokens TokenList) (*InnerNode, TokenList, error) {
+func (p *Parser) parseOp(tokens TokenList) (*OneChildNode, TokenList, error) {
 	cur, rest, err := tokens.PopNext()
 	if err != nil {
 		return nil, nil, fmt.Errorf("[parseOp] %w", err)
@@ -1048,7 +1108,7 @@ func (p *Parser) parseOp(tokens TokenList) (*InnerNode, TokenList, error) {
 	return on, rest, nil
 }
 
-func (p *Parser) parseUnaryOp(tokens TokenList) (*InnerNode, TokenList, error) {
+func (p *Parser) parseUnaryOp(tokens TokenList) (*OneChildNode, TokenList, error) {
 	cur, rest, err := tokens.PopNext()
 	if err != nil {
 		return nil, nil, fmt.Errorf("[parseUnaryOp] %w", err)
@@ -1061,7 +1121,7 @@ func (p *Parser) parseUnaryOp(tokens TokenList) (*InnerNode, TokenList, error) {
 	return uon, rest, nil
 }
 
-func (p *Parser) parseKeywordConstant(tokens TokenList) (*InnerNode, TokenList, error) {
+func (p *Parser) parseKeywordConstant(tokens TokenList) (*OneChildNode, TokenList, error) {
 	cur, rest, err := tokens.PopNext()
 	if err != nil {
 		return nil, nil, fmt.Errorf("[parseKeywordConstant] %w", err)
@@ -1072,4 +1132,8 @@ func (p *Parser) parseKeywordConstant(tokens TokenList) (*InnerNode, TokenList, 
 	kc := NewKeywordConstantNode()
 	kc.AppendChild(cur)
 	return kc, rest, nil
+}
+
+func (p *Parser) SetOneChildMeta(oc *OneChildNode, parent TreeNode) error {
+	return oc.ChildNodes()[0].SetMeta(oc.Type(), parent.Type(), p.symbolTable.LookUp(oc.Value()))
 }

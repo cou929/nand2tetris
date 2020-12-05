@@ -40,12 +40,32 @@ func (k VarKind) String() string {
 	return "Invalid"
 }
 
+func NewVarKind(in string) (VarKind, error) {
+	switch in {
+	case "static":
+		return Static, nil
+	case "field":
+		return Field, nil
+	case "argument":
+		return Argument, nil
+	case "var":
+		return Var, nil
+	}
+	return 0, fmt.Errorf("Invalid kind name of variable %v", in)
+}
+
 func NewSymbolTable() *SymbolTable {
 	return &SymbolTable{
 		classScopeTable: make(ScopedTable),
 		funcScopeTable:  make(ScopedTable),
 		index:           make(map[VarKind]int),
 	}
+}
+
+func (s *SymbolTable) Clear() {
+	s.classScopeTable = make(ScopedTable)
+	s.funcScopeTable = make(ScopedTable)
+	s.index = make(map[VarKind]int)
 }
 
 func (s *SymbolTable) ClearFuncTable() {
@@ -76,14 +96,14 @@ func (s *SymbolTable) Define(name string, typ string, kind VarKind) error {
 	return nil
 }
 
-func (s *SymbolTable) LookUp(name string) (*SymbolTableEntry, bool) {
+func (s *SymbolTable) LookUp(name string) *SymbolTableEntry {
 	ste, ok := s.funcScopeTable[name]
 	if ok {
-		return ste, true
+		return ste
 	}
 	ste, ok = s.classScopeTable[name]
 	if ok {
-		return ste, true
+		return ste
 	}
-	return nil, false
+	return nil
 }

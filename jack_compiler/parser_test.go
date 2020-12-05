@@ -5,15 +5,25 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 )
 
-func MockNodes(nodes []TreeNode, typ NodeType, terminal bool) *InnerNode {
+func MockNodes(nodes []TreeNode, typ NodeType, terminal bool) TreeNode {
 	s := typ.String()
 	s = s[0:strings.LastIndex(s, "Type")]
 	r := []rune(s)
 	head := strings.ToLower(string(r[0]))
 	rest := string(r[1:len(r)])
 	name := head + rest
+	switch typ {
+	case TypeType, ClassNameType, SubroutineNameType, VarNameType, OpType, UnaryOpType, KeywordConstantType:
+		return &OneChildNode{
+			Children:  nodes,
+			Typ:       typ,
+			N:         name,
+			XMLMarkup: !terminal,
+		}
+	}
 	return &InnerNode{
 		Children:  nodes,
 		Typ:       typ,
@@ -48,13 +58,14 @@ func TestParser_parseKeywordConstant(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			p := &Parser{}
+			p := NewParser()
 			got, got1, err := p.parseKeywordConstant(tt.args.tokens)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Parser.parseKeywordConstant() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if diff := cmp.Diff(got, tt.want); diff != "" {
+			opt := cmpopts.IgnoreFields(LeafNode{}, "IDMeta")
+			if diff := cmp.Diff(got, tt.want, opt); diff != "" {
 				t.Errorf("Parser.parseKeywordConstant() diff (-got +want)\n%s", diff)
 			}
 			if diff := cmp.Diff(got1, tt.want1); diff != "" {
@@ -93,13 +104,14 @@ func TestParser_parseUnaryOp(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			p := &Parser{}
+			p := NewParser()
 			got, got1, err := p.parseUnaryOp(tt.args.tokens)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Parser.parseUnaryOp() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if diff := cmp.Diff(got, tt.want); diff != "" {
+			opt := cmpopts.IgnoreFields(LeafNode{}, "IDMeta")
+			if diff := cmp.Diff(got, tt.want, opt); diff != "" {
 				t.Errorf("Parser.parseUnaryOp() diff (-got +want)\n%s", diff)
 			}
 			if diff := cmp.Diff(got1, tt.want1); diff != "" {
@@ -138,13 +150,14 @@ func TestParser_parseOp(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			p := &Parser{}
+			p := NewParser()
 			got, got1, err := p.parseOp(tt.args.tokens)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Parser.parseOp() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if diff := cmp.Diff(got, tt.want); diff != "" {
+			opt := cmpopts.IgnoreFields(LeafNode{}, "IDMeta")
+			if diff := cmp.Diff(got, tt.want, opt); diff != "" {
 				t.Errorf("Parser.parseOp() diff (-got +want)\n%s", diff)
 			}
 			if diff := cmp.Diff(got1, tt.want1); diff != "" {
@@ -322,13 +335,14 @@ func TestParser_parseTerm(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			p := &Parser{}
+			p := NewParser()
 			got, got1, err := p.parseTerm(tt.args.tokens)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Parser.parseTerm() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if diff := cmp.Diff(got, tt.want); diff != "" {
+			opt := cmpopts.IgnoreFields(LeafNode{}, "IDMeta")
+			if diff := cmp.Diff(got, tt.want, opt); diff != "" {
 				t.Errorf("Parser.parseTerm() diff (-got +want)\n%s", diff)
 			}
 			if diff := cmp.Diff(got1, tt.want1); diff != "" {
@@ -365,13 +379,14 @@ func TestParser_parseVarName(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			p := &Parser{}
+			p := NewParser()
 			got, got1, err := p.parseVarName(tt.args.tokens)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Parser.parseVarName() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if diff := cmp.Diff(got, tt.want); diff != "" {
+			opt := cmpopts.IgnoreFields(LeafNode{}, "IDMeta")
+			if diff := cmp.Diff(got, tt.want, opt); diff != "" {
 				t.Errorf("Parser.parseVarName() diff (-got +want)\n%s", diff)
 			}
 			if diff := cmp.Diff(got1, tt.want1); diff != "" {
@@ -436,13 +451,14 @@ func TestParser_parseExpression(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			p := &Parser{}
+			p := NewParser()
 			got, got1, err := p.parseExpression(tt.args.tokens)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Parser.parseExpression() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if diff := cmp.Diff(got, tt.want); diff != "" {
+			opt := cmpopts.IgnoreFields(LeafNode{}, "IDMeta")
+			if diff := cmp.Diff(got, tt.want, opt); diff != "" {
 				t.Errorf("Parser.parseExpression() diff (-got +want)\n%s", diff)
 			}
 			if diff := cmp.Diff(got1, tt.want1); diff != "" {
@@ -522,13 +538,14 @@ func TestParser_parseExpressionList(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			p := &Parser{}
+			p := NewParser()
 			got, got1, err := p.parseExpressionList(tt.args.tokens)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Parser.parseExpressionList() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if diff := cmp.Diff(got, tt.want); diff != "" {
+			opt := cmpopts.IgnoreFields(LeafNode{}, "IDMeta")
+			if diff := cmp.Diff(got, tt.want, opt); diff != "" {
 				t.Errorf("Parser.parseExpressionList() diff (-got +want)\n%s", diff)
 			}
 			if diff := cmp.Diff(got1, tt.want1); diff != "" {
@@ -567,13 +584,14 @@ func TestParser_parseSubroutineName(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			p := &Parser{}
+			p := NewParser()
 			got, got1, err := p.parseSubroutineName(tt.args.tokens)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Parser.parseSubroutineName() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if diff := cmp.Diff(got, tt.want); diff != "" {
+			opt := cmpopts.IgnoreFields(LeafNode{}, "IDMeta")
+			if diff := cmp.Diff(got, tt.want, opt); diff != "" {
 				t.Errorf("Parser.parseSubroutineName() diff (-got +want)\n%s", diff)
 			}
 			if diff := cmp.Diff(got1, tt.want1); diff != "" {
@@ -612,13 +630,14 @@ func TestParser_parseClassName(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			p := &Parser{}
+			p := NewParser()
 			got, got1, err := p.parseClassName(tt.args.tokens)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Parser.parseClassName() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if diff := cmp.Diff(got, tt.want); diff != "" {
+			opt := cmpopts.IgnoreFields(LeafNode{}, "IDMeta")
+			if diff := cmp.Diff(got, tt.want, opt); diff != "" {
 				t.Errorf("Parser.parseClassName() diff (-got +want)\n%s", diff)
 			}
 			if diff := cmp.Diff(got1, tt.want1); diff != "" {
@@ -629,12 +648,15 @@ func TestParser_parseClassName(t *testing.T) {
 }
 
 func TestParser_parseSubroutineCall(t *testing.T) {
+	type fields struct {
+		symbolTable *SymbolTable
+	}
 	type args struct {
 		tokens TokenList
 	}
 	tests := []struct {
 		name    string
-		p       *Parser
+		fields  fields
 		args    args
 		want    TreeNode
 		want1   TokenList
@@ -642,6 +664,28 @@ func TestParser_parseSubroutineCall(t *testing.T) {
 	}{
 		{
 			name: "function call",
+			fields: fields{
+				symbolTable: &SymbolTable{
+					classScopeTable: ScopedTable{},
+					funcScopeTable: ScopedTable{
+						"x": &SymbolTableEntry{
+							Name:  "x",
+							Typ:   "int",
+							Kind:  Var,
+							Index: 0,
+						},
+						"y": &SymbolTableEntry{
+							Name:  "y",
+							Typ:   "int",
+							Kind:  Var,
+							Index: 0,
+						},
+					},
+					index: map[VarKind]int{
+						Var: 1,
+					},
+				},
+			},
 			args: args{[]Token{
 				IdentifierToken("MyFunc"),
 				SymbolToken("("),
@@ -675,7 +719,8 @@ func TestParser_parseSubroutineCall(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "function call with no argument",
+			name:   "function call with no argument",
+			fields: fields{&SymbolTable{}},
 			args: args{[]Token{
 				IdentifierToken("MyFunc"),
 				SymbolToken("("),
@@ -694,7 +739,8 @@ func TestParser_parseSubroutineCall(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "method call",
+			name:   "method call",
+			fields: fields{&SymbolTable{}},
 			args: args{[]Token{
 				IdentifierToken("MyClass"),
 				SymbolToken("."),
@@ -719,13 +765,16 @@ func TestParser_parseSubroutineCall(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			p := &Parser{}
+			p := &Parser{
+				symbolTable: tt.fields.symbolTable,
+			}
 			got, got1, err := p.parseSubroutineCall(tt.args.tokens)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Parser.parseSubroutineCall() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if diff := cmp.Diff(got, tt.want); diff != "" {
+			opt := cmpopts.IgnoreFields(LeafNode{}, "IDMeta")
+			if diff := cmp.Diff(got, tt.want, opt); diff != "" {
 				t.Errorf("Parser.parseSubroutineCall() diff (-got +want)\n%s", diff)
 			}
 			if diff := cmp.Diff(got1, tt.want1); diff != "" {
@@ -790,13 +839,14 @@ func TestParser_parseReturnStatement(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			p := &Parser{}
+			p := NewParser()
 			got, got1, err := p.parseReturnStatement(tt.args.tokens)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Parser.parseReturnStatement() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if diff := cmp.Diff(got, tt.want); diff != "" {
+			opt := cmpopts.IgnoreFields(LeafNode{}, "IDMeta")
+			if diff := cmp.Diff(got, tt.want, opt); diff != "" {
 				t.Errorf("Parser.parseReturnStatement() diff (-got +want)\n%s", diff)
 			}
 			if diff := cmp.Diff(got1, tt.want1); diff != "" {
@@ -846,13 +896,14 @@ func TestParser_parseDoStatement(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			p := &Parser{}
+			p := NewParser()
 			got, got1, err := p.parseDoStatement(tt.args.tokens)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Parser.parseDoStatement() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if diff := cmp.Diff(got, tt.want); diff != "" {
+			opt := cmpopts.IgnoreFields(LeafNode{}, "IDMeta")
+			if diff := cmp.Diff(got, tt.want, opt); diff != "" {
 				t.Errorf("Parser.parseDoStatement() diff (-got +want)\n%s", diff)
 			}
 			if diff := cmp.Diff(got1, tt.want1); diff != "" {
@@ -941,13 +992,14 @@ func TestParser_parseWhileStatement(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			p := &Parser{}
+			p := NewParser()
 			got, got1, err := p.parseWhileStatement(tt.args.tokens)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Parser.parseWhileStatement() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if diff := cmp.Diff(got, tt.want); diff != "" {
+			opt := cmpopts.IgnoreFields(LeafNode{}, "IDMeta")
+			if diff := cmp.Diff(got, tt.want, opt); diff != "" {
 				t.Errorf("Parser.parseWhileStatement() diff (-got +want)\n%s", diff)
 			}
 			if diff := cmp.Diff(got1, tt.want1); diff != "" {
@@ -1123,13 +1175,14 @@ func TestParser_parseIfStatement(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			p := &Parser{}
+			p := NewParser()
 			got, got1, err := p.parseIfStatement(tt.args.tokens)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Parser.parseIfStatement() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if diff := cmp.Diff(got, tt.want); diff != "" {
+			opt := cmpopts.IgnoreFields(LeafNode{}, "IDMeta")
+			if diff := cmp.Diff(got, tt.want, opt); diff != "" {
 				t.Errorf("Parser.parseIfStatement() diff (-got +want)\n%s", diff)
 			}
 			if diff := cmp.Diff(got1, tt.want1); diff != "" {
@@ -1210,13 +1263,14 @@ func TestParser_parseLetStatement(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			p := &Parser{}
+			p := NewParser()
 			got, got1, err := p.parseLetStatement(tt.args.tokens)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Parser.parseLetStatement() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if diff := cmp.Diff(got, tt.want); diff != "" {
+			opt := cmpopts.IgnoreFields(LeafNode{}, "IDMeta")
+			if diff := cmp.Diff(got, tt.want, opt); diff != "" {
 				t.Errorf("Parser.parseLetStatement() diff (-got +want)\n%s", diff)
 			}
 			if diff := cmp.Diff(got1, tt.want1); diff != "" {
@@ -1329,13 +1383,14 @@ func TestParser_parseStatements(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			p := &Parser{}
+			p := NewParser()
 			got, got1, err := p.parseStatements(tt.args.tokens)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Parser.parseStatements() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if diff := cmp.Diff(got, tt.want); diff != "" {
+			opt := cmpopts.IgnoreFields(LeafNode{}, "IDMeta")
+			if diff := cmp.Diff(got, tt.want, opt); diff != "" {
 				t.Errorf("Parser.parseStatements() diff (-got +want)\n%s", diff)
 			}
 			if diff := cmp.Diff(got1, tt.want1); diff != "" {
@@ -1355,6 +1410,7 @@ func TestParser_parseVarDec(t *testing.T) {
 		args    args
 		want    TreeNode
 		want1   TokenList
+		want2   *SymbolTable
 		wantErr bool
 	}{
 		{
@@ -1374,6 +1430,20 @@ func TestParser_parseVarDec(t *testing.T) {
 			}, VarDecType, false),
 			want1: []Token{
 				KeywordToken("return"),
+			},
+			want2: &SymbolTable{
+				classScopeTable: ScopedTable{},
+				funcScopeTable: ScopedTable{
+					"x": &SymbolTableEntry{
+						Name:  "x",
+						Typ:   "boolean",
+						Kind:  Var,
+						Index: 0,
+					},
+				},
+				index: map[VarKind]int{
+					Var: 1,
+				},
 			},
 			wantErr: false,
 		},
@@ -1399,22 +1469,47 @@ func TestParser_parseVarDec(t *testing.T) {
 			want1: []Token{
 				KeywordToken("return"),
 			},
+			want2: &SymbolTable{
+				classScopeTable: ScopedTable{},
+				funcScopeTable: ScopedTable{
+					"x": &SymbolTableEntry{
+						Name:  "x",
+						Typ:   "int",
+						Kind:  Var,
+						Index: 0,
+					},
+					"y": &SymbolTableEntry{
+						Name:  "y",
+						Typ:   "int",
+						Kind:  Var,
+						Index: 1,
+					},
+				},
+				index: map[VarKind]int{
+					Var: 2,
+				},
+			},
 			wantErr: false,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			p := &Parser{}
+			p := NewParser()
 			got, got1, err := p.parseVarDec(tt.args.tokens)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Parser.parseVarDec() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if diff := cmp.Diff(got, tt.want); diff != "" {
+			opt := cmpopts.IgnoreFields(LeafNode{}, "IDMeta")
+			if diff := cmp.Diff(got, tt.want, opt); diff != "" {
 				t.Errorf("Parser.parseVarDec() diff (-got +want)\n%s", diff)
 			}
 			if diff := cmp.Diff(got1, tt.want1); diff != "" {
 				t.Errorf("Parser.parseVarDec() diff (-got1 +want1)\n%s", diff)
+			}
+			opt = cmp.AllowUnexported(*p.symbolTable)
+			if diff := cmp.Diff(p.symbolTable, tt.want2, opt); diff != "" {
+				t.Errorf("Parser.parseVarDec() SymbolTable (-got +want2)\n%s", diff)
 			}
 		})
 	}
@@ -1463,13 +1558,14 @@ func TestParser_parseType(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			p := &Parser{}
+			p := NewParser()
 			got, got1, err := p.parseType(tt.args.tokens)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Parser.parseType() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if diff := cmp.Diff(got, tt.want); diff != "" {
+			opt := cmpopts.IgnoreFields(LeafNode{}, "IDMeta")
+			if diff := cmp.Diff(got, tt.want, opt); diff != "" {
 				t.Errorf("Parser.parseType() diff (-got +want)\n%s", diff)
 			}
 			if diff := cmp.Diff(got1, tt.want1); diff != "" {
@@ -1582,13 +1678,14 @@ func TestParser_parseSubroutineBody(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			p := &Parser{}
+			p := NewParser()
 			got, got1, err := p.parseSubroutineBody(tt.args.tokens)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Parser.parseSubroutineBody() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if diff := cmp.Diff(got, tt.want); diff != "" {
+			opt := cmpopts.IgnoreFields(LeafNode{}, "IDMeta")
+			if diff := cmp.Diff(got, tt.want, opt); diff != "" {
 				t.Errorf("Parser.parseSubroutineBody() diff (-got +want)\n%s", diff)
 			}
 			if diff := cmp.Diff(got1, tt.want1); diff != "" {
@@ -1608,6 +1705,7 @@ func TestParser_parseParameterList(t *testing.T) {
 		args    args
 		want    TreeNode
 		want1   TokenList
+		want2   *SymbolTable
 		wantErr bool
 	}{
 		{
@@ -1618,6 +1716,11 @@ func TestParser_parseParameterList(t *testing.T) {
 			want: MockNodes(nil, ParameterListType, false),
 			want1: []Token{
 				SymbolToken(")"),
+			},
+			want2: &SymbolTable{
+				classScopeTable: ScopedTable{},
+				funcScopeTable:  ScopedTable{},
+				index:           map[VarKind]int{},
 			},
 			wantErr: false,
 		},
@@ -1641,22 +1744,47 @@ func TestParser_parseParameterList(t *testing.T) {
 			want1: []Token{
 				SymbolToken(")"),
 			},
+			want2: &SymbolTable{
+				classScopeTable: ScopedTable{},
+				funcScopeTable: ScopedTable{
+					"x": &SymbolTableEntry{
+						Name:  "x",
+						Typ:   "int",
+						Kind:  Argument,
+						Index: 0,
+					},
+					"y": &SymbolTableEntry{
+						Name:  "y",
+						Typ:   "int",
+						Kind:  Argument,
+						Index: 1,
+					},
+				},
+				index: map[VarKind]int{
+					Argument: 2,
+				},
+			},
 			wantErr: false,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			p := &Parser{}
+			p := NewParser()
 			got, got1, err := p.parseParameterList(tt.args.tokens)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Parser.parseParameterList() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if diff := cmp.Diff(got, tt.want); diff != "" {
+			opt := cmpopts.IgnoreFields(LeafNode{}, "IDMeta")
+			if diff := cmp.Diff(got, tt.want, opt); diff != "" {
 				t.Errorf("Parser.parseParameterList() diff (-got +want)\n%s", diff)
 			}
 			if diff := cmp.Diff(got1, tt.want1); diff != "" {
 				t.Errorf("Parser.parseParameterList() diff (-got1 +want1)\n%s", diff)
+			}
+			opt = cmp.AllowUnexported(*p.symbolTable)
+			if diff := cmp.Diff(p.symbolTable, tt.want2, opt); diff != "" {
+				t.Errorf("Parser.parseParameterList() SymbolTable (-got +want2)\n%s", diff)
 			}
 		})
 	}
@@ -1721,13 +1849,14 @@ func TestParser_parseSubroutineDec(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			p := &Parser{}
+			p := NewParser()
 			got, got1, err := p.parseSubroutineDec(tt.args.tokens)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Parser.parseSubroutineDec() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if diff := cmp.Diff(got, tt.want); diff != "" {
+			opt := cmpopts.IgnoreFields(LeafNode{}, "IDMeta")
+			if diff := cmp.Diff(got, tt.want, opt); diff != "" {
 				t.Errorf("Parser.parseSubroutineDec() diff (-got +want)\n%s", diff)
 			}
 			if diff := cmp.Diff(got1, tt.want1); diff != "" {
@@ -1747,6 +1876,7 @@ func TestParser_parseClassVarDec(t *testing.T) {
 		args    args
 		want    TreeNode
 		want1   TokenList
+		want2   *SymbolTable
 		wantErr bool
 	}{
 		{
@@ -1766,6 +1896,20 @@ func TestParser_parseClassVarDec(t *testing.T) {
 			}, ClassVarDecType, false),
 			want1: []Token{
 				KeywordToken("return"),
+			},
+			want2: &SymbolTable{
+				classScopeTable: ScopedTable{
+					"x": &SymbolTableEntry{
+						Name:  "x",
+						Typ:   "boolean",
+						Kind:  Static,
+						Index: 0,
+					},
+				},
+				funcScopeTable: ScopedTable{},
+				index: map[VarKind]int{
+					Static: 1,
+				},
 			},
 			wantErr: false,
 		},
@@ -1791,22 +1935,47 @@ func TestParser_parseClassVarDec(t *testing.T) {
 			want1: []Token{
 				KeywordToken("return"),
 			},
+			want2: &SymbolTable{
+				classScopeTable: ScopedTable{
+					"x": &SymbolTableEntry{
+						Name:  "x",
+						Typ:   "int",
+						Kind:  Field,
+						Index: 0,
+					},
+					"y": &SymbolTableEntry{
+						Name:  "y",
+						Typ:   "int",
+						Kind:  Field,
+						Index: 1,
+					},
+				},
+				funcScopeTable: ScopedTable{},
+				index: map[VarKind]int{
+					Field: 2,
+				},
+			},
 			wantErr: false,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			p := &Parser{}
+			p := NewParser()
 			got, got1, err := p.parseClassVarDec(tt.args.tokens)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Parser.parseClassVarDec() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if diff := cmp.Diff(got, tt.want); diff != "" {
+			opt := cmpopts.IgnoreFields(LeafNode{}, "IDMeta")
+			if diff := cmp.Diff(got, tt.want, opt); diff != "" {
 				t.Errorf("Parser.parseClassVarDec() diff (-got +want)\n%s", diff)
 			}
 			if diff := cmp.Diff(got1, tt.want1); diff != "" {
 				t.Errorf("Parser.parseClassVarDec() diff (-got1 +want1)\n%s", diff)
+			}
+			opt = cmp.AllowUnexported(*p.symbolTable)
+			if diff := cmp.Diff(p.symbolTable, tt.want2, opt); diff != "" {
+				t.Errorf("Parser.parseClassVarDec() SymbolTable (-got +want2)\n%s", diff)
 			}
 		})
 	}
@@ -1893,13 +2062,14 @@ func TestParser_parseClass(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			p := &Parser{}
+			p := NewParser()
 			got, got1, err := p.parseClass(tt.args.tokens)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Parser.parseClass() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if diff := cmp.Diff(got, tt.want); diff != "" {
+			opt := cmpopts.IgnoreFields(LeafNode{}, "IDMeta")
+			if diff := cmp.Diff(got, tt.want, opt); diff != "" {
 				t.Errorf("Parser.parseClass() diff (-got +want)\n%s", diff)
 			}
 			if diff := cmp.Diff(got1, tt.want1); diff != "" {

@@ -171,7 +171,6 @@ func TestSymbolTable_LookUp(t *testing.T) {
 		fields fields
 		args   args
 		want   *SymbolTableEntry
-		want1  bool
 	}{
 		{
 			name: "normal",
@@ -202,7 +201,6 @@ func TestSymbolTable_LookUp(t *testing.T) {
 				Kind:  Argument,
 				Index: 2,
 			},
-			want1: true,
 		},
 	}
 	for _, tt := range tests {
@@ -211,12 +209,9 @@ func TestSymbolTable_LookUp(t *testing.T) {
 				classScopeTable: tt.fields.classScopeTable,
 				funcScopeTable:  tt.fields.funcScopeTable,
 			}
-			got, got1 := s.LookUp(tt.args.name)
+			got := s.LookUp(tt.args.name)
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("SymbolTable.LookUp() got = %v, want %v", got, tt.want)
-			}
-			if got1 != tt.want1 {
-				t.Errorf("SymbolTable.LookUp() got1 = %v, want %v", got1, tt.want1)
 			}
 		})
 	}

@@ -13,7 +13,7 @@ type TreeNode interface {
 	ChildNodes() []TreeNode
 	SetValue(v string)
 	Value() string
-	SetMeta()
+	SetMeta(parent NodeType, grandParent NodeType, s *SymbolTableEntry) error
 	Xml() string
 }
 
@@ -56,7 +56,8 @@ func (n *InnerNode) Value() string {
 	return ""
 }
 
-func (n *InnerNode) SetMeta() {
+func (n *InnerNode) SetMeta(parent NodeType, grandParent NodeType, s *SymbolTableEntry) error {
+	return fmt.Errorf("InnerNode does not supported SetMeta")
 }
 
 func (n *InnerNode) Xml() string {
@@ -81,8 +82,8 @@ func NewClassVarDecNode() *InnerNode {
 	return NewInnerNode(ClassVarDecType, "classVarDec", true)
 }
 
-func NewTypeNode() *InnerNode {
-	return NewInnerNode(TypeType, "type", false)
+func NewTypeNode() *OneChildNode {
+	return NewOneChildNode(TypeType, "type", false)
 }
 
 func NewSubroutineDecNode() *InnerNode {
@@ -101,16 +102,16 @@ func NewVarDecNode() *InnerNode {
 	return NewInnerNode(VarDecType, "varDec", true)
 }
 
-func NewClassNameNode() *InnerNode {
-	return NewInnerNode(ClassNameType, "className", false)
+func NewClassNameNode() *OneChildNode {
+	return NewOneChildNode(ClassNameType, "className", false)
 }
 
-func NewSubroutineNameNode() *InnerNode {
-	return NewInnerNode(SubroutineNameType, "subroutineName", false)
+func NewSubroutineNameNode() *OneChildNode {
+	return NewOneChildNode(SubroutineNameType, "subroutineName", false)
 }
 
-func NewVarNameNode() *InnerNode {
-	return NewInnerNode(VarNameType, "varName", false)
+func NewVarNameNode() *OneChildNode {
+	return NewOneChildNode(VarNameType, "varName", false)
 }
 
 func NewStatementsNode() *InnerNode {
@@ -157,16 +158,77 @@ func NewExpressionListNode() *InnerNode {
 	return NewInnerNode(ExpressionListType, "expressionList", true)
 }
 
-func NewOpNode() *InnerNode {
-	return NewInnerNode(OpType, "op", false)
+func NewOpNode() *OneChildNode {
+	return NewOneChildNode(OpType, "op", false)
 }
 
-func NewUnaryOpNode() *InnerNode {
-	return NewInnerNode(UnaryOpType, "unaryOp", false)
+func NewUnaryOpNode() *OneChildNode {
+	return NewOneChildNode(UnaryOpType, "unaryOp", false)
 }
 
-func NewKeywordConstantNode() *InnerNode {
-	return NewInnerNode(KeywordConstantType, "keywordConstant", false)
+func NewKeywordConstantNode() *OneChildNode {
+	return NewOneChildNode(KeywordConstantType, "keywordConstant", false)
+}
+
+type OneChildNode struct {
+	Typ       NodeType
+	N         string
+	V         string
+	Children  []TreeNode
+	XMLMarkup bool
+}
+
+func NewOneChildNode(typ NodeType, name string, x bool) *OneChildNode {
+	return &OneChildNode{
+		Typ:       typ,
+		N:         name,
+		XMLMarkup: x,
+	}
+}
+
+func (n *OneChildNode) Name() string {
+	return n.N
+}
+
+func (n *OneChildNode) Type() NodeType {
+	return n.Typ
+}
+
+func (n *OneChildNode) AppendChild(node TreeNode) {
+	n.Children = []TreeNode{node} // must have only one child
+}
+
+func (n *OneChildNode) ChildNodes() []TreeNode {
+	return n.Children
+}
+
+func (n *OneChildNode) SetValue(v string) {
+	// do nothing
+}
+
+func (n *OneChildNode) Value() string {
+	if len(n.Children) < 1 {
+		return ""
+	}
+	return n.Children[0].Value()
+}
+
+func (n *OneChildNode) SetMeta(parent NodeType, grandParent NodeType, s *SymbolTableEntry) error {
+	return fmt.Errorf("OneChildNode does not supported SetMeta")
+}
+
+func (n *OneChildNode) Xml() string {
+	res := []string{}
+	if n.XMLMarkup {
+		res = append(res, fmt.Sprintf("<%s>", n.Name()))
+	}
+	for _, c := range n.ChildNodes() {
+		res = append(res, c.Xml())
+	}
+	if n.XMLMarkup {
+		res = append(res, fmt.Sprintf("</%s>", n.Name()))
+	}
+	return strings.Join(res, "\n")
 }
 
 type LeafNode struct {
@@ -174,6 +236,48 @@ type LeafNode struct {
 	N         string
 	V         string
 	XMLMarkup bool
+	IDMeta    IDMeta
+}
+
+type IDMeta struct {
+	Category    IdCategory
+	Declaration bool
+	SymbolInfo  *SymbolInfo
+}
+
+type IdCategory int
+
+const (
+	IdCatVar IdCategory = iota + 1
+	IdCatArg
+	IdCatStatic
+	IdCatField
+	IdCatClass
+	IdCatSub
+)
+
+func (i IdCategory) String() string {
+	switch i {
+	case IdCatVar:
+		return "IdCatVar"
+	case IdCatArg:
+		return "IdCatArg"
+	case IdCatStatic:
+		return "IdCatStatic"
+	case IdCatField:
+		return "IdCatField"
+	case IdCatClass:
+		return "IdCatClass"
+	case IdCatSub:
+		return "IdCatSub"
+	}
+	return "Invalid"
+}
+
+type SymbolInfo struct {
+	Kind  VarKind
+	Type  string
+	Index int
 }
 
 func NewLeafNode(typ NodeType, name string, x bool) *LeafNode {
@@ -208,10 +312,66 @@ func (n *LeafNode) Value() string {
 	return n.V
 }
 
-func (n *LeafNode) SetMeta() {
+func (n *LeafNode) SetMeta(parent NodeType, grandParent NodeType, s *SymbolTableEntry) error {
+	if n.Type() != IdentifierType {
+		return fmt.Errorf("SetMeta is only for IdentifierType %v", n.Value())
+	}
+	if parent != ClassNameType && parent != SubroutineNameType && parent != VarNameType {
+		return fmt.Errorf("Invalid parent type %v %v %v", n.Value(), n.Type(), parent)
+	}
+
+	var meta IDMeta
+
+	// Category
+	switch s == nil {
+	case true:
+		switch parent {
+		case ClassNameType:
+			meta.Category = IdCatClass
+		case SubroutineNameType:
+			meta.Category = IdCatSub
+		}
+	case false:
+		switch s.Kind {
+		case Static:
+			meta.Category = IdCatStatic
+		case Field:
+			meta.Category = IdCatField
+		case Argument:
+			meta.Category = IdCatArg
+		case Var:
+			meta.Category = IdCatVar
+		}
+	}
+
+	// Declaration
+	meta.Declaration = false
+	switch grandParent {
+	case ClassType, ClassVarDecType, SubroutineDecType, ParameterListType, VarDecType:
+		meta.Declaration = true
+	}
+
+	// SymbolInfo
+	if s != nil {
+		meta.SymbolInfo = &SymbolInfo{
+			Kind:  s.Kind,
+			Type:  s.Typ,
+			Index: s.Index,
+		}
+	}
+
+	n.IDMeta = meta
+
+	return nil
 }
 
 func (n *LeafNode) Xml() string {
+	if idAttr && n.Type() == IdentifierType {
+		if n.IDMeta.SymbolInfo != nil {
+			return fmt.Sprintf("<%s category=\"%s\" declaration=\"%t\" kind=\"%s\" type=\"%s\" index=\"%d\">%s</%s>", n.Name(), n.IDMeta.Category, n.IDMeta.Declaration, n.IDMeta.SymbolInfo.Kind, n.IDMeta.SymbolInfo.Type, n.IDMeta.SymbolInfo.Index, escapeXml(n.Value()), n.Name())
+		}
+		return fmt.Sprintf("<%s category=\"%s\" declaration=\"%t\">%s</%s>", n.Name(), n.IDMeta.Category, n.IDMeta.Declaration, escapeXml(n.Value()), n.Name())
+	}
 	return fmt.Sprintf("<%s>%s</%s>", n.Name(), escapeXml(n.Value()), n.Name())
 }
 

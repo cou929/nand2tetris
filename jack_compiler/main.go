@@ -10,11 +10,16 @@ import (
 	"path/filepath"
 )
 
+var (
+	tokenize = false
+	toStdout = false
+	idAttr   = false
+)
+
 func main() {
-	tokenize := false
-	toStdout := false
 	flag.BoolVar(&tokenize, "tokenize", false, "output tokenized result as xml")
 	flag.BoolVar(&toStdout, "toStdout", false, "output result to stdout instead of file")
+	flag.BoolVar(&idAttr, "idAttr", false, "output attributes of identifier node")
 	flag.Parse()
 
 	if flag.NArg() < 1 {
