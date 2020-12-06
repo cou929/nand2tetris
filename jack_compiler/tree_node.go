@@ -53,6 +53,14 @@ func (n *GeneralNode) Xml() string {
 	return strings.Join(res, "\n")
 }
 
+func (n *GeneralNode) String() string {
+	switch n.Type() {
+	case ClassNameType, SubroutineNameType, VarDecType, OpType, UnaryOpType, KeyConstType:
+		return n.ChildNodes()[0].String()
+	}
+	return ""
+}
+
 func NewClassNode() *GeneralNode {
 	return NewGeneralNode(ClassType, "class")
 }

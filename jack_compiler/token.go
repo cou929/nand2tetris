@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"regexp"
+	"strconv"
 	"strings"
 )
 
@@ -24,6 +25,7 @@ func (t *Tokens) Xml() string {
 type Token interface {
 	Type() NodeType
 	Xml() string
+	String() string
 }
 
 type KeywordToken string
@@ -43,6 +45,10 @@ func (t KeywordToken) Type() NodeType {
 
 func (t KeywordToken) String() string {
 	return string(t)
+}
+
+func (t KeywordToken) Int() int {
+	return 0
 }
 
 func (t KeywordToken) Xml() string {
@@ -67,6 +73,10 @@ func (t SymbolToken) String() string {
 	return string(t)
 }
 
+func (t SymbolToken) Int() int {
+	return 0
+}
+
 func (t SymbolToken) Xml() string {
 	return fmt.Sprintf("<symbol>%s</symbol>", escapeXml(t.String()))
 }
@@ -82,6 +92,10 @@ func NewIntConstToken(in int) (IntConstToken, bool) {
 
 func (t IntConstToken) Type() NodeType {
 	return IntConstType
+}
+
+func (t IntConstToken) String() string {
+	return strconv.Itoa(int(t))
 }
 
 func (t IntConstToken) Int() int {
@@ -110,6 +124,10 @@ func (t StrConstToken) String() string {
 	return string(t)
 }
 
+func (t StrConstToken) Int() int {
+	return 0
+}
+
 func (t StrConstToken) Xml() string {
 	return fmt.Sprintf("<stringConstant>%s</stringConstant>", escapeXml(t.String()))
 }
@@ -130,6 +148,10 @@ func (t IdentifierToken) Type() NodeType {
 
 func (t IdentifierToken) String() string {
 	return string(t)
+}
+
+func (t IdentifierToken) Int() int {
+	return 0
 }
 
 func (t IdentifierToken) Xml() string {
