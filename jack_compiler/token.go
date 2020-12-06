@@ -30,50 +30,10 @@ type KeywordToken string
 
 func NewKeywordToken(in string) (KeywordToken, bool) {
 	switch in {
-	case "class":
-		fallthrough
-	case "constructor":
-		fallthrough
-	case "function":
-		fallthrough
-	case "method":
-		fallthrough
-	case "field":
-		fallthrough
-	case "static":
-		fallthrough
-	case "var":
-		fallthrough
-	case "int":
-		fallthrough
-	case "char":
-		fallthrough
-	case "boolean":
-		fallthrough
-	case "void":
-		fallthrough
-	case "true":
-		fallthrough
-	case "false":
-		fallthrough
-	case "null":
-		fallthrough
-	case "this":
-		fallthrough
-	case "let":
-		fallthrough
-	case "do":
-		fallthrough
-	case "if":
-		fallthrough
-	case "else":
-		fallthrough
-	case "while":
-		fallthrough
-	case "return":
+	case "class", "constructor", "function", "method", "field", "static", "var", "int", "char", "boolean",
+		"void", "true", "false", "null", "this", "let", "do", "if", "else", "while", "return":
 		return KeywordToken(in), true
 	}
-
 	return "", false
 }
 
@@ -93,46 +53,9 @@ type SymbolToken string
 
 func NewSymbolToken(in string) (SymbolToken, bool) {
 	switch in {
-	case "{":
-		fallthrough
-	case "}":
-		fallthrough
-	case "(":
-		fallthrough
-	case ")":
-		fallthrough
-	case "[":
-		fallthrough
-	case "]":
-		fallthrough
-	case ".":
-		fallthrough
-	case ",":
-		fallthrough
-	case ";":
-		fallthrough
-	case "+":
-		fallthrough
-	case "-":
-		fallthrough
-	case "*":
-		fallthrough
-	case "/":
-		fallthrough
-	case "&":
-		fallthrough
-	case "|":
-		fallthrough
-	case "<":
-		fallthrough
-	case ">":
-		fallthrough
-	case "=":
-		fallthrough
-	case "~":
+	case "{", "}", "(", ")", "[", "]", ".", ",", ";", "+", "-", "*", "/", "&", "|", "<", ">", "=", "~":
 		return SymbolToken(in), true
 	}
-
 	return "", false
 }
 
