@@ -7,20 +7,18 @@ import (
 	"github.com/google/go-cmp/cmp"
 )
 
-func MockNodes(tokens []Token, typ NodeType, terminal bool) TreeNode {
-	xml := ""
-	if !terminal {
-		s := typ.String()
-		s = strings.Replace(s, "Type", "", -1)
-		r := []rune(s)
-		head := strings.ToLower(string(r[0]))
-		rest := string(r[1:len(r)])
-		xml = head + rest
-	}
-	return &GeneralNode{
-		Children:  tokens,
+func MockNodes(nodes []TreeNode, typ NodeType, terminal bool) *InnerNode {
+	s := typ.String()
+	s = s[0:strings.LastIndex(s, "Type")]
+	r := []rune(s)
+	head := strings.ToLower(string(r[0]))
+	rest := string(r[1:len(r)])
+	name := head + rest
+	return &InnerNode{
+		Children:  nodes,
 		Typ:       typ,
-		XMLHeader: xml,
+		N:         name,
+		XMLMarkup: !terminal,
 	}
 }
 
@@ -41,7 +39,7 @@ func TestParser_parseKeywordConstant(t *testing.T) {
 				KeywordToken("true"),
 				SymbolToken(";"),
 			}},
-			want: MockNodes([]Token{KeywordToken("true")}, KeyConstType, true),
+			want: MockNodes([]TreeNode{AdaptTokenToNode(KeywordToken("true"))}, KeywordConstantType, true),
 			want1: []Token{
 				SymbolToken(";"),
 			},
@@ -85,7 +83,7 @@ func TestParser_parseUnaryOp(t *testing.T) {
 				IdentifierToken("i"),
 				SymbolToken(";"),
 			}},
-			want: MockNodes([]Token{SymbolToken("-")}, UnaryOpType, true),
+			want: MockNodes([]TreeNode{AdaptTokenToNode(SymbolToken("-"))}, UnaryOpType, true),
 			want1: []Token{
 				IdentifierToken("i"),
 				SymbolToken(";"),
@@ -130,7 +128,7 @@ func TestParser_parseOp(t *testing.T) {
 				IdentifierToken("123"),
 				SymbolToken(";"),
 			}},
-			want: MockNodes([]Token{SymbolToken("+")}, OpType, true),
+			want: MockNodes([]TreeNode{AdaptTokenToNode(SymbolToken("+"))}, OpType, true),
 			want1: []Token{
 				IdentifierToken("123"),
 				SymbolToken(";"),
@@ -175,7 +173,7 @@ func TestParser_parseTerm(t *testing.T) {
 				SymbolToken("+"),
 				IntConstToken(456),
 			}},
-			want: MockNodes([]Token{IntConstToken(123)}, TermType, false),
+			want: MockNodes([]TreeNode{AdaptTokenToNode(IntConstToken(123))}, TermType, false),
 			want1: []Token{
 				SymbolToken("+"),
 				IntConstToken(456),
@@ -188,7 +186,7 @@ func TestParser_parseTerm(t *testing.T) {
 				StrConstToken("string"),
 				SymbolToken(";"),
 			}},
-			want: MockNodes([]Token{StrConstToken("string")}, TermType, false),
+			want: MockNodes([]TreeNode{AdaptTokenToNode(StrConstToken("string"))}, TermType, false),
 			want1: []Token{
 				SymbolToken(";"),
 			},
@@ -200,7 +198,7 @@ func TestParser_parseTerm(t *testing.T) {
 				KeywordToken("true"),
 				SymbolToken(";"),
 			}},
-			want: MockNodes([]Token{MockNodes([]Token{KeywordToken("true")}, KeyConstType, true)}, TermType, false),
+			want: MockNodes([]TreeNode{MockNodes([]TreeNode{AdaptTokenToNode(KeywordToken("true"))}, KeywordConstantType, true)}, TermType, false),
 			want1: []Token{
 				SymbolToken(";"),
 			},
@@ -212,7 +210,7 @@ func TestParser_parseTerm(t *testing.T) {
 				IdentifierToken("args"),
 				SymbolToken(";"),
 			}},
-			want: MockNodes([]Token{MockNodes([]Token{IdentifierToken("args")}, VarNameType, true)}, TermType, false),
+			want: MockNodes([]TreeNode{MockNodes([]TreeNode{AdaptTokenToNode(IdentifierToken("args"))}, VarNameType, true)}, TermType, false),
 			want1: []Token{
 				SymbolToken(";"),
 			},
@@ -228,15 +226,15 @@ func TestParser_parseTerm(t *testing.T) {
 				SymbolToken(";"),
 			}},
 			want: MockNodes(
-				[]Token{
-					MockNodes([]Token{IdentifierToken("args")}, VarNameType, true),
-					SymbolToken("["),
-					MockNodes([]Token{
-						MockNodes([]Token{
-							MockNodes([]Token{IdentifierToken("i")}, VarNameType, true),
+				[]TreeNode{
+					MockNodes([]TreeNode{AdaptTokenToNode(IdentifierToken("args"))}, VarNameType, true),
+					AdaptTokenToNode(SymbolToken("[")),
+					MockNodes([]TreeNode{
+						MockNodes([]TreeNode{
+							MockNodes([]TreeNode{AdaptTokenToNode(IdentifierToken("i"))}, VarNameType, true),
 						}, TermType, false),
 					}, ExpressionType, false),
-					SymbolToken("]"),
+					AdaptTokenToNode(SymbolToken("]")),
 				},
 				TermType, false),
 			want1: []Token{
@@ -253,18 +251,18 @@ func TestParser_parseTerm(t *testing.T) {
 				SymbolToken(")"),
 				SymbolToken(";"),
 			}},
-			want: MockNodes([]Token{
-				MockNodes([]Token{
-					MockNodes([]Token{IdentifierToken("fooFunc")}, SubroutineNameType, true),
-					SymbolToken("("),
-					MockNodes([]Token{
-						MockNodes([]Token{
-							MockNodes([]Token{
-								MockNodes([]Token{IdentifierToken("x")}, VarNameType, true),
+			want: MockNodes([]TreeNode{
+				MockNodes([]TreeNode{
+					MockNodes([]TreeNode{AdaptTokenToNode(IdentifierToken("fooFunc"))}, SubroutineNameType, true),
+					AdaptTokenToNode(SymbolToken("(")),
+					MockNodes([]TreeNode{
+						MockNodes([]TreeNode{
+							MockNodes([]TreeNode{
+								MockNodes([]TreeNode{AdaptTokenToNode(IdentifierToken("x"))}, VarNameType, true),
 							}, TermType, false),
 						}, ExpressionType, false),
 					}, ExpressionListType, false),
-					SymbolToken(")"),
+					AdaptTokenToNode(SymbolToken(")")),
 				}, SubroutineCallType, true),
 			}, TermType, false),
 			want1: []Token{
@@ -280,14 +278,14 @@ func TestParser_parseTerm(t *testing.T) {
 				SymbolToken(")"),
 				SymbolToken(";"),
 			}},
-			want: MockNodes([]Token{
-				SymbolToken("("),
-				MockNodes([]Token{
-					MockNodes([]Token{
-						MockNodes([]Token{IdentifierToken("ok")}, VarNameType, true),
+			want: MockNodes([]TreeNode{
+				AdaptTokenToNode(SymbolToken("(")),
+				MockNodes([]TreeNode{
+					MockNodes([]TreeNode{
+						MockNodes([]TreeNode{AdaptTokenToNode(IdentifierToken("ok"))}, VarNameType, true),
 					}, TermType, false),
 				}, ExpressionType, false),
-				SymbolToken(")"),
+				AdaptTokenToNode(SymbolToken(")")),
 			}, TermType, false),
 			want1: []Token{
 				SymbolToken(";"),
@@ -301,10 +299,10 @@ func TestParser_parseTerm(t *testing.T) {
 				IdentifierToken("some"),
 				SymbolToken(";"),
 			}},
-			want: MockNodes([]Token{
-				MockNodes([]Token{SymbolToken("~")}, UnaryOpType, true),
-				MockNodes([]Token{
-					MockNodes([]Token{IdentifierToken("some")}, VarNameType, true),
+			want: MockNodes([]TreeNode{
+				MockNodes([]TreeNode{AdaptTokenToNode(SymbolToken("~"))}, UnaryOpType, true),
+				MockNodes([]TreeNode{
+					MockNodes([]TreeNode{AdaptTokenToNode(IdentifierToken("some"))}, VarNameType, true),
 				}, TermType, false),
 			}, TermType, false),
 			want1: []Token{
@@ -317,7 +315,7 @@ func TestParser_parseTerm(t *testing.T) {
 			args: args{[]Token{
 				SymbolToken(")"),
 			}},
-			want:    nil,
+			want:    (*InnerNode)(nil),
 			want1:   nil,
 			wantErr: true,
 		},
@@ -358,7 +356,7 @@ func TestParser_parseVarName(t *testing.T) {
 				IdentifierToken("args"),
 				SymbolToken(";"),
 			}},
-			want: MockNodes([]Token{IdentifierToken("args")}, VarNameType, true),
+			want: MockNodes([]TreeNode{AdaptTokenToNode(IdentifierToken("args"))}, VarNameType, true),
 			want1: []Token{
 				SymbolToken(";"),
 			},
@@ -401,10 +399,10 @@ func TestParser_parseExpression(t *testing.T) {
 				IdentifierToken("x"),
 				SymbolToken("]"),
 			}},
-			want: MockNodes([]Token{
-				MockNodes([]Token{
-					MockNodes([]Token{
-						IdentifierToken("x"),
+			want: MockNodes([]TreeNode{
+				MockNodes([]TreeNode{
+					MockNodes([]TreeNode{
+						AdaptTokenToNode(IdentifierToken("x")),
 					}, VarNameType, true),
 				}, TermType, false),
 			}, ExpressionType, false),
@@ -421,13 +419,13 @@ func TestParser_parseExpression(t *testing.T) {
 				IdentifierToken("y"),
 				SymbolToken(";"),
 			}},
-			want: MockNodes([]Token{
-				MockNodes([]Token{
-					MockNodes([]Token{IdentifierToken("x")}, VarNameType, true),
+			want: MockNodes([]TreeNode{
+				MockNodes([]TreeNode{
+					MockNodes([]TreeNode{AdaptTokenToNode(IdentifierToken("x"))}, VarNameType, true),
 				}, TermType, false),
-				MockNodes([]Token{SymbolToken("|")}, OpType, true),
-				MockNodes([]Token{
-					MockNodes([]Token{IdentifierToken("y")}, VarNameType, true),
+				MockNodes([]TreeNode{AdaptTokenToNode(SymbolToken("|"))}, OpType, true),
+				MockNodes([]TreeNode{
+					MockNodes([]TreeNode{AdaptTokenToNode(IdentifierToken("y"))}, VarNameType, true),
 				}, TermType, false),
 			}, ExpressionType, false),
 			want1: []Token{
@@ -471,7 +469,7 @@ func TestParser_parseExpressionList(t *testing.T) {
 			args: args{[]Token{
 				SymbolToken(")"),
 			}},
-			want: MockNodes([]Token(nil), ExpressionListType, false),
+			want: MockNodes([]TreeNode(nil), ExpressionListType, false),
 			want1: []Token{
 				SymbolToken(")"),
 			},
@@ -483,10 +481,10 @@ func TestParser_parseExpressionList(t *testing.T) {
 				IdentifierToken("x"),
 				SymbolToken(")"),
 			}},
-			want: MockNodes([]Token{
-				MockNodes([]Token{
-					MockNodes([]Token{
-						MockNodes([]Token{IdentifierToken("x")}, VarNameType, true),
+			want: MockNodes([]TreeNode{
+				MockNodes([]TreeNode{
+					MockNodes([]TreeNode{
+						MockNodes([]TreeNode{AdaptTokenToNode(IdentifierToken("x"))}, VarNameType, true),
 					}, TermType, false),
 				}, ExpressionType, false),
 			}, ExpressionListType, false),
@@ -503,16 +501,16 @@ func TestParser_parseExpressionList(t *testing.T) {
 				IdentifierToken("y"),
 				SymbolToken(")"),
 			}},
-			want: MockNodes([]Token{
-				MockNodes([]Token{
-					MockNodes([]Token{
-						MockNodes([]Token{IdentifierToken("x")}, VarNameType, true),
+			want: MockNodes([]TreeNode{
+				MockNodes([]TreeNode{
+					MockNodes([]TreeNode{
+						MockNodes([]TreeNode{AdaptTokenToNode(IdentifierToken("x"))}, VarNameType, true),
 					}, TermType, false),
 				}, ExpressionType, false),
-				SymbolToken(","),
-				MockNodes([]Token{
-					MockNodes([]Token{
-						MockNodes([]Token{IdentifierToken("y")}, VarNameType, true),
+				AdaptTokenToNode(SymbolToken(",")),
+				MockNodes([]TreeNode{
+					MockNodes([]TreeNode{
+						MockNodes([]TreeNode{AdaptTokenToNode(IdentifierToken("y"))}, VarNameType, true),
 					}, TermType, false),
 				}, ExpressionType, false),
 			}, ExpressionListType, false),
@@ -558,8 +556,8 @@ func TestParser_parseSubroutineName(t *testing.T) {
 				IdentifierToken("myFunc"),
 				SymbolToken("("),
 			}},
-			want: MockNodes([]Token{
-				IdentifierToken("myFunc"),
+			want: MockNodes([]TreeNode{
+				AdaptTokenToNode(IdentifierToken("myFunc")),
 			}, SubroutineNameType, true),
 			want1: []Token{
 				SymbolToken("("),
@@ -603,8 +601,8 @@ func TestParser_parseClassName(t *testing.T) {
 				IdentifierToken("MyClass"),
 				SymbolToken("."),
 			}},
-			want: MockNodes([]Token{
-				IdentifierToken("MyClass"),
+			want: MockNodes([]TreeNode{
+				AdaptTokenToNode(IdentifierToken("MyClass")),
 			}, ClassNameType, true),
 			want1: []Token{
 				SymbolToken("."),
@@ -653,23 +651,23 @@ func TestParser_parseSubroutineCall(t *testing.T) {
 				SymbolToken(")"),
 				SymbolToken(";"),
 			}},
-			want: MockNodes([]Token{
-				MockNodes([]Token{IdentifierToken("MyFunc")}, SubroutineNameType, true),
-				SymbolToken("("),
-				MockNodes([]Token{
-					MockNodes([]Token{
-						MockNodes([]Token{
-							MockNodes([]Token{IdentifierToken("x")}, VarNameType, true),
+			want: MockNodes([]TreeNode{
+				MockNodes([]TreeNode{AdaptTokenToNode(IdentifierToken("MyFunc"))}, SubroutineNameType, true),
+				AdaptTokenToNode(SymbolToken("(")),
+				MockNodes([]TreeNode{
+					MockNodes([]TreeNode{
+						MockNodes([]TreeNode{
+							MockNodes([]TreeNode{AdaptTokenToNode(IdentifierToken("x"))}, VarNameType, true),
 						}, TermType, false),
 					}, ExpressionType, false),
-					SymbolToken(","),
-					MockNodes([]Token{
-						MockNodes([]Token{
-							MockNodes([]Token{IdentifierToken("y")}, VarNameType, true),
+					AdaptTokenToNode(SymbolToken(",")),
+					MockNodes([]TreeNode{
+						MockNodes([]TreeNode{
+							MockNodes([]TreeNode{AdaptTokenToNode(IdentifierToken("y"))}, VarNameType, true),
 						}, TermType, false),
 					}, ExpressionType, false),
 				}, ExpressionListType, false),
-				SymbolToken(")"),
+				AdaptTokenToNode(SymbolToken(")")),
 			}, SubroutineCallType, true),
 			want1: []Token{
 				SymbolToken(";"),
@@ -684,11 +682,11 @@ func TestParser_parseSubroutineCall(t *testing.T) {
 				SymbolToken(")"),
 				SymbolToken(";"),
 			}},
-			want: MockNodes([]Token{
-				MockNodes([]Token{IdentifierToken("MyFunc")}, SubroutineNameType, true),
-				SymbolToken("("),
+			want: MockNodes([]TreeNode{
+				MockNodes([]TreeNode{AdaptTokenToNode(IdentifierToken("MyFunc"))}, SubroutineNameType, true),
+				AdaptTokenToNode(SymbolToken("(")),
 				MockNodes(nil, ExpressionListType, false),
-				SymbolToken(")"),
+				AdaptTokenToNode(SymbolToken(")")),
 			}, SubroutineCallType, true),
 			want1: []Token{
 				SymbolToken(";"),
@@ -705,13 +703,13 @@ func TestParser_parseSubroutineCall(t *testing.T) {
 				SymbolToken(")"),
 				SymbolToken(";"),
 			}},
-			want: MockNodes([]Token{
-				MockNodes([]Token{IdentifierToken("MyClass")}, ClassNameType, true),
-				SymbolToken("."),
-				MockNodes([]Token{IdentifierToken("MyMethod")}, SubroutineNameType, true),
-				SymbolToken("("),
+			want: MockNodes([]TreeNode{
+				MockNodes([]TreeNode{AdaptTokenToNode(IdentifierToken("MyClass"))}, ClassNameType, true),
+				AdaptTokenToNode(SymbolToken(".")),
+				MockNodes([]TreeNode{AdaptTokenToNode(IdentifierToken("MyMethod"))}, SubroutineNameType, true),
+				AdaptTokenToNode(SymbolToken("(")),
 				MockNodes(nil, ExpressionListType, false),
-				SymbolToken(")"),
+				AdaptTokenToNode(SymbolToken(")")),
 			}, SubroutineCallType, true),
 			want1: []Token{
 				SymbolToken(";"),
@@ -756,9 +754,9 @@ func TestParser_parseReturnStatement(t *testing.T) {
 				SymbolToken(";"),
 				SymbolToken("}"),
 			}},
-			want: MockNodes([]Token{
-				KeywordToken("return"),
-				SymbolToken(";"),
+			want: MockNodes([]TreeNode{
+				AdaptTokenToNode(KeywordToken("return")),
+				AdaptTokenToNode(SymbolToken(";")),
 			}, ReturnStatementType, false),
 			want1: []Token{
 				SymbolToken("}"),
@@ -773,16 +771,16 @@ func TestParser_parseReturnStatement(t *testing.T) {
 				SymbolToken(";"),
 				SymbolToken("}"),
 			}},
-			want: MockNodes([]Token{
-				KeywordToken("return"),
-				MockNodes([]Token{
-					MockNodes([]Token{
-						MockNodes([]Token{
-							IdentifierToken("res"),
+			want: MockNodes([]TreeNode{
+				AdaptTokenToNode(KeywordToken("return")),
+				MockNodes([]TreeNode{
+					MockNodes([]TreeNode{
+						MockNodes([]TreeNode{
+							AdaptTokenToNode(IdentifierToken("res")),
 						}, VarNameType, true),
 					}, TermType, false),
 				}, ExpressionType, false),
-				SymbolToken(";"),
+				AdaptTokenToNode(SymbolToken(";")),
 			}, ReturnStatementType, false),
 			want1: []Token{
 				SymbolToken("}"),
@@ -830,15 +828,15 @@ func TestParser_parseDoStatement(t *testing.T) {
 				SymbolToken(";"),
 				SymbolToken("}"),
 			}},
-			want: MockNodes([]Token{
-				KeywordToken("do"),
-				MockNodes([]Token{
-					MockNodes([]Token{IdentifierToken("MyFunc")}, SubroutineNameType, true),
-					SymbolToken("("),
+			want: MockNodes([]TreeNode{
+				AdaptTokenToNode(KeywordToken("do")),
+				MockNodes([]TreeNode{
+					MockNodes([]TreeNode{AdaptTokenToNode(IdentifierToken("MyFunc"))}, SubroutineNameType, true),
+					AdaptTokenToNode(SymbolToken("(")),
 					MockNodes(nil, ExpressionListType, false),
-					SymbolToken(")"),
+					AdaptTokenToNode(SymbolToken(")")),
 				}, SubroutineCallType, true),
-				SymbolToken(";"),
+				AdaptTokenToNode(SymbolToken(";")),
 			}, DoStatementType, false),
 			want1: []Token{
 				SymbolToken("}"),
@@ -897,43 +895,43 @@ func TestParser_parseWhileStatement(t *testing.T) {
 				SymbolToken("}"),
 				KeywordToken("return"),
 			}},
-			want: MockNodes([]Token{
-				KeywordToken("while"),
-				SymbolToken("("),
-				MockNodes([]Token{
-					MockNodes([]Token{
-						MockNodes([]Token{IdentifierToken("x")}, VarNameType, true),
+			want: MockNodes([]TreeNode{
+				AdaptTokenToNode(KeywordToken("while")),
+				AdaptTokenToNode(SymbolToken("(")),
+				MockNodes([]TreeNode{
+					MockNodes([]TreeNode{
+						MockNodes([]TreeNode{AdaptTokenToNode(IdentifierToken("x"))}, VarNameType, true),
 					}, TermType, false),
 				}, ExpressionType, false),
-				SymbolToken(")"),
-				SymbolToken("{"),
-				MockNodes([]Token{
-					MockNodes([]Token{
-						MockNodes([]Token{
-							KeywordToken("do"),
-							MockNodes([]Token{
-								MockNodes([]Token{IdentifierToken("MyFunc")}, SubroutineNameType, true),
-								SymbolToken("("),
+				AdaptTokenToNode(SymbolToken(")")),
+				AdaptTokenToNode(SymbolToken("{")),
+				MockNodes([]TreeNode{
+					MockNodes([]TreeNode{
+						MockNodes([]TreeNode{
+							AdaptTokenToNode(KeywordToken("do")),
+							MockNodes([]TreeNode{
+								MockNodes([]TreeNode{AdaptTokenToNode(IdentifierToken("MyFunc"))}, SubroutineNameType, true),
+								AdaptTokenToNode(SymbolToken("(")),
 								MockNodes(nil, ExpressionListType, false),
-								SymbolToken(")"),
+								AdaptTokenToNode(SymbolToken(")")),
 							}, SubroutineCallType, true),
-							SymbolToken(";"),
+							AdaptTokenToNode(SymbolToken(";")),
 						}, DoStatementType, false),
 					}, StatementType, true),
-					MockNodes([]Token{
-						MockNodes([]Token{
-							KeywordToken("do"),
-							MockNodes([]Token{
-								MockNodes([]Token{IdentifierToken("MyFunc")}, SubroutineNameType, true),
-								SymbolToken("("),
+					MockNodes([]TreeNode{
+						MockNodes([]TreeNode{
+							AdaptTokenToNode(KeywordToken("do")),
+							MockNodes([]TreeNode{
+								MockNodes([]TreeNode{AdaptTokenToNode(IdentifierToken("MyFunc"))}, SubroutineNameType, true),
+								AdaptTokenToNode(SymbolToken("(")),
 								MockNodes(nil, ExpressionListType, false),
-								SymbolToken(")"),
+								AdaptTokenToNode(SymbolToken(")")),
 							}, SubroutineCallType, true),
-							SymbolToken(";"),
+							AdaptTokenToNode(SymbolToken(";")),
 						}, DoStatementType, false),
 					}, StatementType, true),
 				}, StatementsType, false),
-				SymbolToken("}"),
+				AdaptTokenToNode(SymbolToken("}")),
 			}, WhileStatementType, false),
 			want1: []Token{
 				KeywordToken("return"),
@@ -992,42 +990,42 @@ func TestParser_parseIfStatement(t *testing.T) {
 				SymbolToken("}"),
 				KeywordToken("return"),
 			}},
-			want: MockNodes([]Token{
-				KeywordToken("if"),
-				SymbolToken("("),
-				MockNodes([]Token{
-					MockNodes([]Token{
-						MockNodes([]Token{IdentifierToken("x")}, VarNameType, true),
+			want: MockNodes([]TreeNode{
+				AdaptTokenToNode(KeywordToken("if")),
+				AdaptTokenToNode(SymbolToken("(")),
+				MockNodes([]TreeNode{
+					MockNodes([]TreeNode{
+						MockNodes([]TreeNode{AdaptTokenToNode(IdentifierToken("x"))}, VarNameType, true),
 					}, TermType, false),
 				}, ExpressionType, false),
-				SymbolToken(")"),
-				SymbolToken("{"),
-				MockNodes([]Token{
-					MockNodes([]Token{
-						MockNodes([]Token{
-							KeywordToken("let"),
-							MockNodes([]Token{IdentifierToken("x")}, VarNameType, true),
-							SymbolToken("="),
-							MockNodes([]Token{
-								MockNodes([]Token{IntConstToken(100)}, TermType, false),
+				AdaptTokenToNode(SymbolToken(")")),
+				AdaptTokenToNode(SymbolToken("{")),
+				MockNodes([]TreeNode{
+					MockNodes([]TreeNode{
+						MockNodes([]TreeNode{
+							AdaptTokenToNode(KeywordToken("let")),
+							MockNodes([]TreeNode{AdaptTokenToNode(IdentifierToken("x"))}, VarNameType, true),
+							AdaptTokenToNode(SymbolToken("=")),
+							MockNodes([]TreeNode{
+								MockNodes([]TreeNode{AdaptTokenToNode(IntConstToken(100))}, TermType, false),
 							}, ExpressionType, false),
-							SymbolToken(";"),
+							AdaptTokenToNode(SymbolToken(";")),
 						}, LetStatementType, false),
 					}, StatementType, true),
-					MockNodes([]Token{
-						MockNodes([]Token{
-							KeywordToken("do"),
-							MockNodes([]Token{
-								MockNodes([]Token{IdentifierToken("MyFunc")}, SubroutineNameType, true),
-								SymbolToken("("),
+					MockNodes([]TreeNode{
+						MockNodes([]TreeNode{
+							AdaptTokenToNode(KeywordToken("do")),
+							MockNodes([]TreeNode{
+								MockNodes([]TreeNode{AdaptTokenToNode(IdentifierToken("MyFunc"))}, SubroutineNameType, true),
+								AdaptTokenToNode(SymbolToken("(")),
 								MockNodes(nil, ExpressionListType, false),
-								SymbolToken(")"),
+								AdaptTokenToNode(SymbolToken(")")),
 							}, SubroutineCallType, true),
-							SymbolToken(";"),
+							AdaptTokenToNode(SymbolToken(";")),
 						}, DoStatementType, false),
 					}, StatementType, true),
 				}, StatementsType, false),
-				SymbolToken("}"),
+				AdaptTokenToNode(SymbolToken("}")),
 			}, IfStatementType, false),
 			want1: []Token{
 				KeywordToken("return"),
@@ -1063,59 +1061,59 @@ func TestParser_parseIfStatement(t *testing.T) {
 				SymbolToken("}"),
 				KeywordToken("return"),
 			}},
-			want: MockNodes([]Token{
-				KeywordToken("if"),
-				SymbolToken("("),
-				MockNodes([]Token{
-					MockNodes([]Token{
-						MockNodes([]Token{IdentifierToken("x")}, VarNameType, true),
+			want: MockNodes([]TreeNode{
+				AdaptTokenToNode(KeywordToken("if")),
+				AdaptTokenToNode(SymbolToken("(")),
+				MockNodes([]TreeNode{
+					MockNodes([]TreeNode{
+						MockNodes([]TreeNode{AdaptTokenToNode(IdentifierToken("x"))}, VarNameType, true),
 					}, TermType, false),
 				}, ExpressionType, false),
-				SymbolToken(")"),
-				SymbolToken("{"),
-				MockNodes([]Token{
-					MockNodes([]Token{
-						MockNodes([]Token{
-							KeywordToken("do"),
-							MockNodes([]Token{
-								MockNodes([]Token{IdentifierToken("MyFunc")}, SubroutineNameType, true),
-								SymbolToken("("),
+				AdaptTokenToNode(SymbolToken(")")),
+				AdaptTokenToNode(SymbolToken("{")),
+				MockNodes([]TreeNode{
+					MockNodes([]TreeNode{
+						MockNodes([]TreeNode{
+							AdaptTokenToNode(KeywordToken("do")),
+							MockNodes([]TreeNode{
+								MockNodes([]TreeNode{AdaptTokenToNode(IdentifierToken("MyFunc"))}, SubroutineNameType, true),
+								AdaptTokenToNode(SymbolToken("(")),
 								MockNodes(nil, ExpressionListType, false),
-								SymbolToken(")"),
+								AdaptTokenToNode(SymbolToken(")")),
 							}, SubroutineCallType, true),
-							SymbolToken(";"),
+							AdaptTokenToNode(SymbolToken(";")),
 						}, DoStatementType, false),
 					}, StatementType, true),
 				}, StatementsType, false),
-				SymbolToken("}"),
-				KeywordToken("else"),
-				SymbolToken("{"),
-				MockNodes([]Token{
-					MockNodes([]Token{
-						MockNodes([]Token{
-							KeywordToken("let"),
-							MockNodes([]Token{IdentifierToken("x")}, VarNameType, true),
-							SymbolToken("="),
-							MockNodes([]Token{
-								MockNodes([]Token{IntConstToken(100)}, TermType, false),
+				AdaptTokenToNode(SymbolToken("}")),
+				AdaptTokenToNode(KeywordToken("else")),
+				AdaptTokenToNode(SymbolToken("{")),
+				MockNodes([]TreeNode{
+					MockNodes([]TreeNode{
+						MockNodes([]TreeNode{
+							AdaptTokenToNode(KeywordToken("let")),
+							MockNodes([]TreeNode{AdaptTokenToNode(IdentifierToken("x"))}, VarNameType, true),
+							AdaptTokenToNode(SymbolToken("=")),
+							MockNodes([]TreeNode{
+								MockNodes([]TreeNode{AdaptTokenToNode(IntConstToken(100))}, TermType, false),
 							}, ExpressionType, false),
-							SymbolToken(";"),
+							AdaptTokenToNode(SymbolToken(";")),
 						}, LetStatementType, false),
 					}, StatementType, true),
-					MockNodes([]Token{
-						MockNodes([]Token{
-							KeywordToken("do"),
-							MockNodes([]Token{
-								MockNodes([]Token{IdentifierToken("MyFuncElse")}, SubroutineNameType, true),
-								SymbolToken("("),
+					MockNodes([]TreeNode{
+						MockNodes([]TreeNode{
+							AdaptTokenToNode(KeywordToken("do")),
+							MockNodes([]TreeNode{
+								MockNodes([]TreeNode{AdaptTokenToNode(IdentifierToken("MyFuncElse"))}, SubroutineNameType, true),
+								AdaptTokenToNode(SymbolToken("(")),
 								MockNodes(nil, ExpressionListType, false),
-								SymbolToken(")"),
+								AdaptTokenToNode(SymbolToken(")")),
 							}, SubroutineCallType, true),
-							SymbolToken(";"),
+							AdaptTokenToNode(SymbolToken(";")),
 						}, DoStatementType, false),
 					}, StatementType, true),
 				}, StatementsType, false),
-				SymbolToken("}"),
+				AdaptTokenToNode(SymbolToken("}")),
 			}, IfStatementType, false),
 			want1: []Token{
 				KeywordToken("return"),
@@ -1163,14 +1161,14 @@ func TestParser_parseLetStatement(t *testing.T) {
 				SymbolToken(";"),
 				KeywordToken("return"),
 			}},
-			want: MockNodes([]Token{
-				KeywordToken("let"),
-				MockNodes([]Token{IdentifierToken("x")}, VarNameType, true),
-				SymbolToken("="),
-				MockNodes([]Token{
-					MockNodes([]Token{IntConstToken(100)}, TermType, false),
+			want: MockNodes([]TreeNode{
+				AdaptTokenToNode(KeywordToken("let")),
+				MockNodes([]TreeNode{AdaptTokenToNode(IdentifierToken("x"))}, VarNameType, true),
+				AdaptTokenToNode(SymbolToken("=")),
+				MockNodes([]TreeNode{
+					MockNodes([]TreeNode{AdaptTokenToNode(IntConstToken(100))}, TermType, false),
 				}, ExpressionType, false),
-				SymbolToken(";"),
+				AdaptTokenToNode(SymbolToken(";")),
 			}, LetStatementType, false),
 			want1: []Token{
 				KeywordToken("return"),
@@ -1190,19 +1188,19 @@ func TestParser_parseLetStatement(t *testing.T) {
 				SymbolToken(";"),
 				KeywordToken("return"),
 			}},
-			want: MockNodes([]Token{
-				KeywordToken("let"),
-				MockNodes([]Token{IdentifierToken("x")}, VarNameType, true),
-				SymbolToken("["),
-				MockNodes([]Token{
-					MockNodes([]Token{IntConstToken(3)}, TermType, false),
+			want: MockNodes([]TreeNode{
+				AdaptTokenToNode(KeywordToken("let")),
+				MockNodes([]TreeNode{AdaptTokenToNode(IdentifierToken("x"))}, VarNameType, true),
+				AdaptTokenToNode(SymbolToken("[")),
+				MockNodes([]TreeNode{
+					MockNodes([]TreeNode{AdaptTokenToNode(IntConstToken(3))}, TermType, false),
 				}, ExpressionType, false),
-				SymbolToken("]"),
-				SymbolToken("="),
-				MockNodes([]Token{
-					MockNodes([]Token{IntConstToken(100)}, TermType, false),
+				AdaptTokenToNode(SymbolToken("]")),
+				AdaptTokenToNode(SymbolToken("=")),
+				MockNodes([]TreeNode{
+					MockNodes([]TreeNode{AdaptTokenToNode(IntConstToken(100))}, TermType, false),
 				}, ExpressionType, false),
-				SymbolToken(";"),
+				AdaptTokenToNode(SymbolToken(";")),
 			}, LetStatementType, false),
 			want1: []Token{
 				KeywordToken("return"),
@@ -1261,16 +1259,16 @@ func TestParser_parseStatements(t *testing.T) {
 				SymbolToken(";"),
 				KeywordToken("return"),
 			}},
-			want: MockNodes([]Token{
-				MockNodes([]Token{
-					MockNodes([]Token{
-						KeywordToken("let"),
-						MockNodes([]Token{IdentifierToken("x")}, VarNameType, true),
-						SymbolToken("="),
-						MockNodes([]Token{
-							MockNodes([]Token{IntConstToken(100)}, TermType, false),
+			want: MockNodes([]TreeNode{
+				MockNodes([]TreeNode{
+					MockNodes([]TreeNode{
+						AdaptTokenToNode(KeywordToken("let")),
+						MockNodes([]TreeNode{AdaptTokenToNode(IdentifierToken("x"))}, VarNameType, true),
+						AdaptTokenToNode(SymbolToken("=")),
+						MockNodes([]TreeNode{
+							MockNodes([]TreeNode{AdaptTokenToNode(IntConstToken(100))}, TermType, false),
 						}, ExpressionType, false),
-						SymbolToken(";"),
+						AdaptTokenToNode(SymbolToken(";")),
 					}, LetStatementType, false),
 				}, StatementType, true),
 			}, StatementsType, false),
@@ -1295,33 +1293,33 @@ func TestParser_parseStatements(t *testing.T) {
 				KeywordToken("return"),
 				SymbolToken(";"),
 			}},
-			want: MockNodes([]Token{
-				MockNodes([]Token{
-					MockNodes([]Token{
-						KeywordToken("let"),
-						MockNodes([]Token{IdentifierToken("x")}, VarNameType, true),
-						SymbolToken("="),
-						MockNodes([]Token{
-							MockNodes([]Token{IntConstToken(100)}, TermType, false),
+			want: MockNodes([]TreeNode{
+				MockNodes([]TreeNode{
+					MockNodes([]TreeNode{
+						AdaptTokenToNode(KeywordToken("let")),
+						MockNodes([]TreeNode{AdaptTokenToNode(IdentifierToken("x"))}, VarNameType, true),
+						AdaptTokenToNode(SymbolToken("=")),
+						MockNodes([]TreeNode{
+							MockNodes([]TreeNode{AdaptTokenToNode(IntConstToken(100))}, TermType, false),
 						}, ExpressionType, false),
-						SymbolToken(";"),
+						AdaptTokenToNode(SymbolToken(";")),
 					}, LetStatementType, false),
 				}, StatementType, true),
-				MockNodes([]Token{
-					MockNodes([]Token{
-						KeywordToken("let"),
-						MockNodes([]Token{IdentifierToken("y")}, VarNameType, true),
-						SymbolToken("="),
-						MockNodes([]Token{
-							MockNodes([]Token{IntConstToken(200)}, TermType, false),
+				MockNodes([]TreeNode{
+					MockNodes([]TreeNode{
+						AdaptTokenToNode(KeywordToken("let")),
+						MockNodes([]TreeNode{AdaptTokenToNode(IdentifierToken("y"))}, VarNameType, true),
+						AdaptTokenToNode(SymbolToken("=")),
+						MockNodes([]TreeNode{
+							MockNodes([]TreeNode{AdaptTokenToNode(IntConstToken(200))}, TermType, false),
 						}, ExpressionType, false),
-						SymbolToken(";"),
+						AdaptTokenToNode(SymbolToken(";")),
 					}, LetStatementType, false),
 				}, StatementType, true),
-				MockNodes([]Token{
-					MockNodes([]Token{
-						KeywordToken("return"),
-						SymbolToken(";"),
+				MockNodes([]TreeNode{
+					MockNodes([]TreeNode{
+						AdaptTokenToNode(KeywordToken("return")),
+						AdaptTokenToNode(SymbolToken(";")),
 					}, ReturnStatementType, false),
 				}, StatementType, true),
 			}, StatementsType, false),
@@ -1368,11 +1366,11 @@ func TestParser_parseVarDec(t *testing.T) {
 				SymbolToken(";"),
 				KeywordToken("return"),
 			}},
-			want: MockNodes([]Token{
-				KeywordToken("var"),
-				MockNodes([]Token{KeywordToken("boolean")}, TypeType, true),
-				MockNodes([]Token{IdentifierToken("x")}, VarNameType, true),
-				SymbolToken(";"),
+			want: MockNodes([]TreeNode{
+				AdaptTokenToNode(KeywordToken("var")),
+				MockNodes([]TreeNode{AdaptTokenToNode(KeywordToken("boolean"))}, TypeType, true),
+				MockNodes([]TreeNode{AdaptTokenToNode(IdentifierToken("x"))}, VarNameType, true),
+				AdaptTokenToNode(SymbolToken(";")),
 			}, VarDecType, false),
 			want1: []Token{
 				KeywordToken("return"),
@@ -1390,13 +1388,13 @@ func TestParser_parseVarDec(t *testing.T) {
 				SymbolToken(";"),
 				KeywordToken("return"),
 			}},
-			want: MockNodes([]Token{
-				KeywordToken("var"),
-				MockNodes([]Token{KeywordToken("int")}, TypeType, true),
-				MockNodes([]Token{IdentifierToken("x")}, VarNameType, true),
-				SymbolToken(","),
-				MockNodes([]Token{IdentifierToken("y")}, VarNameType, true),
-				SymbolToken(";"),
+			want: MockNodes([]TreeNode{
+				AdaptTokenToNode(KeywordToken("var")),
+				MockNodes([]TreeNode{AdaptTokenToNode(KeywordToken("int"))}, TypeType, true),
+				MockNodes([]TreeNode{AdaptTokenToNode(IdentifierToken("x"))}, VarNameType, true),
+				AdaptTokenToNode(SymbolToken(",")),
+				MockNodes([]TreeNode{AdaptTokenToNode(IdentifierToken("y"))}, VarNameType, true),
+				AdaptTokenToNode(SymbolToken(";")),
 			}, VarDecType, false),
 			want1: []Token{
 				KeywordToken("return"),
@@ -1440,8 +1438,8 @@ func TestParser_parseType(t *testing.T) {
 				KeywordToken("boolean"),
 				IdentifierToken("x"),
 			}},
-			want: MockNodes([]Token{
-				KeywordToken("boolean"),
+			want: MockNodes([]TreeNode{
+				AdaptTokenToNode(KeywordToken("boolean")),
 			}, TypeType, true),
 			want1: []Token{
 				IdentifierToken("x"),
@@ -1454,8 +1452,8 @@ func TestParser_parseType(t *testing.T) {
 				IdentifierToken("MyClass"),
 				IdentifierToken("x"),
 			}},
-			want: MockNodes([]Token{
-				MockNodes([]Token{IdentifierToken("MyClass")}, ClassNameType, true),
+			want: MockNodes([]TreeNode{
+				MockNodes([]TreeNode{AdaptTokenToNode(IdentifierToken("MyClass"))}, ClassNameType, true),
 			}, TypeType, true),
 			want1: []Token{
 				IdentifierToken("x"),
@@ -1505,22 +1503,22 @@ func TestParser_parseSubroutineBody(t *testing.T) {
 				SymbolToken("}"),
 				KeywordToken("class"),
 			}},
-			want: MockNodes([]Token{
-				SymbolToken("{"),
-				MockNodes([]Token{
-					MockNodes([]Token{
-						MockNodes([]Token{
-							KeywordToken("let"),
-							MockNodes([]Token{IdentifierToken("x")}, VarNameType, true),
-							SymbolToken("="),
-							MockNodes([]Token{
-								MockNodes([]Token{IntConstToken(100)}, TermType, false),
+			want: MockNodes([]TreeNode{
+				AdaptTokenToNode(SymbolToken("{")),
+				MockNodes([]TreeNode{
+					MockNodes([]TreeNode{
+						MockNodes([]TreeNode{
+							AdaptTokenToNode(KeywordToken("let")),
+							MockNodes([]TreeNode{AdaptTokenToNode(IdentifierToken("x"))}, VarNameType, true),
+							AdaptTokenToNode(SymbolToken("=")),
+							MockNodes([]TreeNode{
+								MockNodes([]TreeNode{AdaptTokenToNode(IntConstToken(100))}, TermType, false),
 							}, ExpressionType, false),
-							SymbolToken(";"),
+							AdaptTokenToNode(SymbolToken(";")),
 						}, LetStatementType, false),
 					}, StatementType, true),
 				}, StatementsType, false),
-				SymbolToken("}"),
+				AdaptTokenToNode(SymbolToken("}")),
 			}, SubroutineBodyType, false),
 			want1: []Token{
 				KeywordToken("class"),
@@ -1547,34 +1545,34 @@ func TestParser_parseSubroutineBody(t *testing.T) {
 				SymbolToken("}"),
 				KeywordToken("class"),
 			}},
-			want: MockNodes([]Token{
-				SymbolToken("{"),
-				MockNodes([]Token{
-					KeywordToken("var"),
-					MockNodes([]Token{KeywordToken("int")}, TypeType, true),
-					MockNodes([]Token{IdentifierToken("x")}, VarNameType, true),
-					SymbolToken(";"),
+			want: MockNodes([]TreeNode{
+				AdaptTokenToNode(SymbolToken("{")),
+				MockNodes([]TreeNode{
+					AdaptTokenToNode(KeywordToken("var")),
+					MockNodes([]TreeNode{AdaptTokenToNode(KeywordToken("int"))}, TypeType, true),
+					MockNodes([]TreeNode{AdaptTokenToNode(IdentifierToken("x"))}, VarNameType, true),
+					AdaptTokenToNode(SymbolToken(";")),
 				}, VarDecType, false),
-				MockNodes([]Token{
-					KeywordToken("var"),
-					MockNodes([]Token{KeywordToken("char")}, TypeType, true),
-					MockNodes([]Token{IdentifierToken("y")}, VarNameType, true),
-					SymbolToken(";"),
+				MockNodes([]TreeNode{
+					AdaptTokenToNode(KeywordToken("var")),
+					MockNodes([]TreeNode{AdaptTokenToNode(KeywordToken("char"))}, TypeType, true),
+					MockNodes([]TreeNode{AdaptTokenToNode(IdentifierToken("y"))}, VarNameType, true),
+					AdaptTokenToNode(SymbolToken(";")),
 				}, VarDecType, false),
-				MockNodes([]Token{
-					MockNodes([]Token{
-						MockNodes([]Token{
-							KeywordToken("let"),
-							MockNodes([]Token{IdentifierToken("x")}, VarNameType, true),
-							SymbolToken("="),
-							MockNodes([]Token{
-								MockNodes([]Token{IntConstToken(100)}, TermType, false),
+				MockNodes([]TreeNode{
+					MockNodes([]TreeNode{
+						MockNodes([]TreeNode{
+							AdaptTokenToNode(KeywordToken("let")),
+							MockNodes([]TreeNode{AdaptTokenToNode(IdentifierToken("x"))}, VarNameType, true),
+							AdaptTokenToNode(SymbolToken("=")),
+							MockNodes([]TreeNode{
+								MockNodes([]TreeNode{AdaptTokenToNode(IntConstToken(100))}, TermType, false),
 							}, ExpressionType, false),
-							SymbolToken(";"),
+							AdaptTokenToNode(SymbolToken(";")),
 						}, LetStatementType, false),
 					}, StatementType, true),
 				}, StatementsType, false),
-				SymbolToken("}"),
+				AdaptTokenToNode(SymbolToken("}")),
 			}, SubroutineBodyType, false),
 			want1: []Token{
 				KeywordToken("class"),
@@ -1633,12 +1631,12 @@ func TestParser_parseParameterList(t *testing.T) {
 				IdentifierToken("y"),
 				SymbolToken(")"),
 			}},
-			want: MockNodes([]Token{
-				MockNodes([]Token{KeywordToken("int")}, TypeType, true),
-				MockNodes([]Token{IdentifierToken("x")}, VarNameType, true),
-				SymbolToken(","),
-				MockNodes([]Token{KeywordToken("int")}, TypeType, true),
-				MockNodes([]Token{IdentifierToken("y")}, VarNameType, true),
+			want: MockNodes([]TreeNode{
+				MockNodes([]TreeNode{AdaptTokenToNode(KeywordToken("int"))}, TypeType, true),
+				MockNodes([]TreeNode{AdaptTokenToNode(IdentifierToken("x"))}, VarNameType, true),
+				AdaptTokenToNode(SymbolToken(",")),
+				MockNodes([]TreeNode{AdaptTokenToNode(KeywordToken("int"))}, TypeType, true),
+				MockNodes([]TreeNode{AdaptTokenToNode(IdentifierToken("y"))}, VarNameType, true),
 			}, ParameterListType, false),
 			want1: []Token{
 				SymbolToken(")"),
@@ -1692,27 +1690,27 @@ func TestParser_parseSubroutineDec(t *testing.T) {
 				SymbolToken("}"),
 				KeywordToken("class"),
 			}},
-			want: MockNodes([]Token{
-				KeywordToken("constructor"),
-				MockNodes([]Token{KeywordToken("int")}, TypeType, true),
-				MockNodes([]Token{IdentifierToken("myFunc")}, SubroutineNameType, true),
-				SymbolToken("("),
-				MockNodes([]Token{
-					MockNodes([]Token{KeywordToken("int")}, TypeType, true),
-					MockNodes([]Token{IdentifierToken("x")}, VarNameType, true),
+			want: MockNodes([]TreeNode{
+				AdaptTokenToNode(KeywordToken("constructor")),
+				MockNodes([]TreeNode{AdaptTokenToNode(KeywordToken("int"))}, TypeType, true),
+				MockNodes([]TreeNode{AdaptTokenToNode(IdentifierToken("myFunc"))}, SubroutineNameType, true),
+				AdaptTokenToNode(SymbolToken("(")),
+				MockNodes([]TreeNode{
+					MockNodes([]TreeNode{AdaptTokenToNode(KeywordToken("int"))}, TypeType, true),
+					MockNodes([]TreeNode{AdaptTokenToNode(IdentifierToken("x"))}, VarNameType, true),
 				}, ParameterListType, false),
-				SymbolToken(")"),
-				MockNodes([]Token{
-					SymbolToken("{"),
-					MockNodes([]Token{
-						MockNodes([]Token{
-							MockNodes([]Token{
-								KeywordToken("return"),
-								SymbolToken(";"),
+				AdaptTokenToNode(SymbolToken(")")),
+				MockNodes([]TreeNode{
+					AdaptTokenToNode(SymbolToken("{")),
+					MockNodes([]TreeNode{
+						MockNodes([]TreeNode{
+							MockNodes([]TreeNode{
+								AdaptTokenToNode(KeywordToken("return")),
+								AdaptTokenToNode(SymbolToken(";")),
 							}, ReturnStatementType, false),
 						}, StatementType, true),
 					}, StatementsType, false),
-					SymbolToken("}"),
+					AdaptTokenToNode(SymbolToken("}")),
 				}, SubroutineBodyType, false),
 			}, SubroutineDecType, false),
 			want1: []Token{
@@ -1760,11 +1758,11 @@ func TestParser_parseClassVarDec(t *testing.T) {
 				SymbolToken(";"),
 				KeywordToken("return"),
 			}},
-			want: MockNodes([]Token{
-				KeywordToken("static"),
-				MockNodes([]Token{KeywordToken("boolean")}, TypeType, true),
-				MockNodes([]Token{IdentifierToken("x")}, VarNameType, true),
-				SymbolToken(";"),
+			want: MockNodes([]TreeNode{
+				AdaptTokenToNode(KeywordToken("static")),
+				MockNodes([]TreeNode{AdaptTokenToNode(KeywordToken("boolean"))}, TypeType, true),
+				MockNodes([]TreeNode{AdaptTokenToNode(IdentifierToken("x"))}, VarNameType, true),
+				AdaptTokenToNode(SymbolToken(";")),
 			}, ClassVarDecType, false),
 			want1: []Token{
 				KeywordToken("return"),
@@ -1782,13 +1780,13 @@ func TestParser_parseClassVarDec(t *testing.T) {
 				SymbolToken(";"),
 				KeywordToken("return"),
 			}},
-			want: MockNodes([]Token{
-				KeywordToken("field"),
-				MockNodes([]Token{KeywordToken("int")}, TypeType, true),
-				MockNodes([]Token{IdentifierToken("x")}, VarNameType, true),
-				SymbolToken(","),
-				MockNodes([]Token{IdentifierToken("y")}, VarNameType, true),
-				SymbolToken(";"),
+			want: MockNodes([]TreeNode{
+				AdaptTokenToNode(KeywordToken("field")),
+				MockNodes([]TreeNode{AdaptTokenToNode(KeywordToken("int"))}, TypeType, true),
+				MockNodes([]TreeNode{AdaptTokenToNode(IdentifierToken("x"))}, VarNameType, true),
+				AdaptTokenToNode(SymbolToken(",")),
+				MockNodes([]TreeNode{AdaptTokenToNode(IdentifierToken("y"))}, VarNameType, true),
+				AdaptTokenToNode(SymbolToken(";")),
 			}, ClassVarDecType, false),
 			want1: []Token{
 				KeywordToken("return"),
@@ -1850,42 +1848,42 @@ func TestParser_parseClass(t *testing.T) {
 				SymbolToken("}"),
 				KeywordToken("return"),
 			}},
-			want: MockNodes([]Token{
-				KeywordToken("class"),
-				MockNodes([]Token{
-					IdentifierToken("MyClass"),
+			want: MockNodes([]TreeNode{
+				AdaptTokenToNode(KeywordToken("class")),
+				MockNodes([]TreeNode{
+					AdaptTokenToNode(IdentifierToken("MyClass")),
 				}, ClassNameType, true),
-				SymbolToken("{"),
-				MockNodes([]Token{
-					KeywordToken("static"),
-					MockNodes([]Token{KeywordToken("boolean")}, TypeType, true),
-					MockNodes([]Token{IdentifierToken("x")}, VarNameType, true),
-					SymbolToken(";"),
+				AdaptTokenToNode(SymbolToken("{")),
+				MockNodes([]TreeNode{
+					AdaptTokenToNode(KeywordToken("static")),
+					MockNodes([]TreeNode{AdaptTokenToNode(KeywordToken("boolean"))}, TypeType, true),
+					MockNodes([]TreeNode{AdaptTokenToNode(IdentifierToken("x"))}, VarNameType, true),
+					AdaptTokenToNode(SymbolToken(";")),
 				}, ClassVarDecType, false),
-				MockNodes([]Token{
-					KeywordToken("constructor"),
-					MockNodes([]Token{KeywordToken("int")}, TypeType, true),
-					MockNodes([]Token{IdentifierToken("myFunc")}, SubroutineNameType, true),
-					SymbolToken("("),
-					MockNodes([]Token{
-						MockNodes([]Token{KeywordToken("int")}, TypeType, true),
-						MockNodes([]Token{IdentifierToken("x")}, VarNameType, true),
+				MockNodes([]TreeNode{
+					AdaptTokenToNode(KeywordToken("constructor")),
+					MockNodes([]TreeNode{AdaptTokenToNode(KeywordToken("int"))}, TypeType, true),
+					MockNodes([]TreeNode{AdaptTokenToNode(IdentifierToken("myFunc"))}, SubroutineNameType, true),
+					AdaptTokenToNode(SymbolToken("(")),
+					MockNodes([]TreeNode{
+						MockNodes([]TreeNode{AdaptTokenToNode(KeywordToken("int"))}, TypeType, true),
+						MockNodes([]TreeNode{AdaptTokenToNode(IdentifierToken("x"))}, VarNameType, true),
 					}, ParameterListType, false),
-					SymbolToken(")"),
-					MockNodes([]Token{
-						SymbolToken("{"),
-						MockNodes([]Token{
-							MockNodes([]Token{
-								MockNodes([]Token{
-									KeywordToken("return"),
-									SymbolToken(";"),
+					AdaptTokenToNode(SymbolToken(")")),
+					MockNodes([]TreeNode{
+						AdaptTokenToNode(SymbolToken("{")),
+						MockNodes([]TreeNode{
+							MockNodes([]TreeNode{
+								MockNodes([]TreeNode{
+									AdaptTokenToNode(KeywordToken("return")),
+									AdaptTokenToNode(SymbolToken(";")),
 								}, ReturnStatementType, false),
 							}, StatementType, true),
 						}, StatementsType, false),
-						SymbolToken("}"),
+						AdaptTokenToNode(SymbolToken("}")),
 					}, SubroutineBodyType, false),
 				}, SubroutineDecType, false),
-				SymbolToken("}"),
+				AdaptTokenToNode(SymbolToken("}")),
 			}, ClassType, false),
 			want1: []Token{
 				KeywordToken("return"),

@@ -38,7 +38,7 @@ const (
 	SubroutineCallType
 	OpType
 	UnaryOpType
-	KeyConstType
+	KeywordConstantType
 )
 
 func (typ NodeType) String() string {
@@ -99,8 +99,8 @@ func (typ NodeType) String() string {
 		return "OpType"
 	case UnaryOpType:
 		return "UnaryOpType"
-	case KeyConstType:
-		return "KeyConstType"
+	case KeywordConstantType:
+		return "KeywordConstantType"
 	}
 	return "invalid type"
 }

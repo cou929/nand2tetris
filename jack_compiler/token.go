@@ -26,6 +26,7 @@ type Token interface {
 	Type() NodeType
 	Xml() string
 	String() string
+	Name() string
 }
 
 type KeywordToken string
@@ -52,7 +53,11 @@ func (t KeywordToken) Int() int {
 }
 
 func (t KeywordToken) Xml() string {
-	return fmt.Sprintf("<keyword>%s</keyword>", escapeXml(t.String()))
+	return fmt.Sprintf("<%s>%s</%s>", t.Name(), escapeXml(t.String()), t.Name())
+}
+
+func (t KeywordToken) Name() string {
+	return "keyword"
 }
 
 type SymbolToken string
@@ -78,7 +83,11 @@ func (t SymbolToken) Int() int {
 }
 
 func (t SymbolToken) Xml() string {
-	return fmt.Sprintf("<symbol>%s</symbol>", escapeXml(t.String()))
+	return fmt.Sprintf("<%s>%s</%s>", t.Name(), escapeXml(t.String()), t.Name())
+}
+
+func (t SymbolToken) Name() string {
+	return "symbol"
 }
 
 type IntConstToken int
@@ -103,7 +112,11 @@ func (t IntConstToken) Int() int {
 }
 
 func (t IntConstToken) Xml() string {
-	return fmt.Sprintf("<integerConstant>%d</integerConstant>", t.Int())
+	return fmt.Sprintf("<%s>%d</%s>", t.Name(), t.Int(), t.Name())
+}
+
+func (t IntConstToken) Name() string {
+	return "integerConstant"
 }
 
 type StrConstToken string
@@ -129,7 +142,11 @@ func (t StrConstToken) Int() int {
 }
 
 func (t StrConstToken) Xml() string {
-	return fmt.Sprintf("<stringConstant>%s</stringConstant>", escapeXml(t.String()))
+	return fmt.Sprintf("<%s>%s</%s>", t.Name(), escapeXml(t.String()), t.Name())
+}
+
+func (t StrConstToken) Name() string {
+	return "stringConstant"
 }
 
 type IdentifierToken string
@@ -155,7 +172,11 @@ func (t IdentifierToken) Int() int {
 }
 
 func (t IdentifierToken) Xml() string {
-	return fmt.Sprintf("<identifier>%s</identifier>", escapeXml(t.String()))
+	return fmt.Sprintf("<%s>%s</%s>", t.Name(), escapeXml(t.String()), t.Name())
+}
+
+func (t IdentifierToken) Name() string {
+	return "identifier"
 }
 
 func escapeXml(in string) string {
