@@ -14,6 +14,7 @@ type TreeNode interface {
 	SetValue(v string)
 	Value() string
 	SetMeta(parent NodeType, grandParent NodeType, s *SymbolTableEntry) error
+	Meta() *IDMeta
 	Xml() string
 }
 
@@ -58,6 +59,10 @@ func (n *InnerNode) Value() string {
 
 func (n *InnerNode) SetMeta(parent NodeType, grandParent NodeType, s *SymbolTableEntry) error {
 	return fmt.Errorf("InnerNode does not supported SetMeta")
+}
+
+func (n *InnerNode) Meta() *IDMeta {
+	return nil
 }
 
 func (n *InnerNode) Xml() string {
@@ -217,6 +222,10 @@ func (n *OneChildNode) SetMeta(parent NodeType, grandParent NodeType, s *SymbolT
 	return fmt.Errorf("OneChildNode does not supported SetMeta")
 }
 
+func (n *OneChildNode) Meta() *IDMeta {
+	return n.Children[0].Meta()
+}
+
 func (n *OneChildNode) Xml() string {
 	res := []string{}
 	if n.XMLMarkup {
@@ -236,7 +245,7 @@ type LeafNode struct {
 	N         string
 	V         string
 	XMLMarkup bool
-	IDMeta    IDMeta
+	IDMeta    *IDMeta
 }
 
 type IDMeta struct {
@@ -320,7 +329,7 @@ func (n *LeafNode) SetMeta(parent NodeType, grandParent NodeType, s *SymbolTable
 		return fmt.Errorf("Invalid parent type %v %v %v", n.Value(), n.Type(), parent)
 	}
 
-	var meta IDMeta
+	meta := &IDMeta{}
 
 	// Category
 	switch s == nil {
@@ -363,6 +372,10 @@ func (n *LeafNode) SetMeta(parent NodeType, grandParent NodeType, s *SymbolTable
 	n.IDMeta = meta
 
 	return nil
+}
+
+func (n *LeafNode) Meta() *IDMeta {
+	return n.IDMeta
 }
 
 func (n *LeafNode) Xml() string {
