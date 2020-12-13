@@ -855,19 +855,23 @@ func (p *Parser) parseExpression(tokens TokenList) (*InnerNode, TokenList, error
 	}
 	res.AppendChild(t1)
 
-	// op (optional)
-	mayOp, rest2, err := p.parseOp(rest)
-	if err != nil {
-		return res, rest, nil
-	}
-	res.AppendChild(mayOp)
+	for true {
+		// op (optional)
+		mayOp, rest2, err := p.parseOp(rest)
+		if err != nil {
+			break
+		}
+		res.AppendChild(mayOp)
 
-	// second term if op exists
-	t2, rest, err := p.parseTerm(rest2)
-	if err != nil {
-		return nil, nil, fmt.Errorf("[parseExpression] %w", err)
+		// second term if op exists
+		t2, rest3, err := p.parseTerm(rest2)
+		if err != nil {
+			return nil, nil, fmt.Errorf("[parseExpression] %w", err)
+		}
+		res.AppendChild(t2)
+
+		rest = rest3
 	}
-	res.AppendChild(t2)
 
 	return res, rest, nil
 }

@@ -448,6 +448,32 @@ func TestParser_parseExpression(t *testing.T) {
 			},
 			wantErr: false,
 		},
+		{
+			name: "multiple op",
+			args: args{[]Token{
+				IdentifierToken("x"),
+				SymbolToken("+"),
+				IdentifierToken("y"),
+				SymbolToken("+"),
+				IntConstToken(10),
+				SymbolToken(";"),
+			}},
+			want: MockNodes([]TreeNode{
+				MockNodes([]TreeNode{
+					MockNodes([]TreeNode{AdaptTokenToNode(IdentifierToken("x"))}, VarNameType, true),
+				}, TermType, false),
+				MockNodes([]TreeNode{AdaptTokenToNode(SymbolToken("+"))}, OpType, true),
+				MockNodes([]TreeNode{
+					MockNodes([]TreeNode{AdaptTokenToNode(IdentifierToken("y"))}, VarNameType, true),
+				}, TermType, false),
+				MockNodes([]TreeNode{AdaptTokenToNode(SymbolToken("+"))}, OpType, true),
+				MockNodes([]TreeNode{AdaptTokenToNode(IntConstToken(10))}, TermType, false),
+			}, ExpressionType, false),
+			want1: []Token{
+				SymbolToken(";"),
+			},
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
