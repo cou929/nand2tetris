@@ -383,7 +383,7 @@ func (p *Parser) parseVarDec(tokens TokenList) (*InnerNode, TokenList, error) {
 	res.AppendChild(v)
 	p.symbolTable.Define(v.Value(), typ.Value(), Var)
 	if err := p.SetOneChildMeta(v, res); err != nil {
-		return nil, nil, fmt.Errorf("[parseClassVarDec] %w", err)
+		return nil, nil, fmt.Errorf("[parseVarDec] %w", err)
 	}
 
 	// following vars
@@ -408,7 +408,7 @@ func (p *Parser) parseVarDec(tokens TokenList) (*InnerNode, TokenList, error) {
 		rest = r
 		p.symbolTable.Define(v.Value(), typ.Value(), Var)
 		if err := p.SetOneChildMeta(v, res); err != nil {
-			return nil, nil, fmt.Errorf("[parseClassVarDec] %w", err)
+			return nil, nil, fmt.Errorf("[parseVarDec] %w", err)
 		}
 	}
 
