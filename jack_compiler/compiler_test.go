@@ -60,22 +60,17 @@ func TestCompiler_compileSubroutineCall(t *testing.T) {
 }
 
 func TestCompiler_compileExpression(t *testing.T) {
-	type fields struct {
-		vmc *VmCode
-	}
 	type args struct {
 		pt TreeNode
 	}
 	tests := []struct {
 		name    string
-		fields  fields
 		args    args
 		want    []string
 		wantErr bool
 	}{
 		{
-			name:   "int calculation",
-			fields: fields{NewVmCode()},
+			name: "int calculation",
 			args: args{
 				MockNodes([]TreeNode{
 					MockNodes([]TreeNode{AdaptTokenToNode(IntConstToken(10))}, TermType, false),
@@ -95,8 +90,7 @@ func TestCompiler_compileExpression(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:   "unaryOp",
-			fields: fields{NewVmCode()},
+			name: "unaryOp",
 			args: args{
 				MockNodes([]TreeNode{
 					MockNodes([]TreeNode{
@@ -115,7 +109,7 @@ func TestCompiler_compileExpression(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := &Compiler{
-				vmc: tt.fields.vmc,
+				vmc: NewVmCode(),
 			}
 			got, err := c.compileExpression(tt.args.pt)
 			if (err != nil) != tt.wantErr {
@@ -124,6 +118,53 @@ func TestCompiler_compileExpression(t *testing.T) {
 			}
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("Compiler.compileExpression() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestCompiler_compileLetStatement(t *testing.T) {
+	type args struct {
+		pt TreeNode
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    []string
+		wantErr bool
+	}{
+		{
+			name: "assign to local variable",
+			args: args{
+				MockNodes([]TreeNode{
+					AdaptTokenToNode(KeywordToken("let")),
+					MockNodes([]TreeNode{AdaptTokenToNodeWithMeta(IdentifierToken("x"), &IDMeta{Category: IdCatVar, SymbolInfo: &SymbolInfo{Index: 2}})}, VarNameType, true),
+					AdaptTokenToNode(SymbolToken("=")),
+					MockNodes([]TreeNode{
+						MockNodes([]TreeNode{AdaptTokenToNode(IntConstToken(100))}, TermType, false),
+					}, ExpressionType, false),
+					AdaptTokenToNode(SymbolToken(";")),
+				}, LetStatementType, true),
+			},
+			want: []string{
+				"push constant 100",
+				"pop local 2",
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := &Compiler{
+				vmc: NewVmCode(),
+			}
+			got, err := c.compileLetStatement(tt.args.pt)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("Compiler.compileLetStatement() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("Compiler.compileLetStatement() = %v, want %v", got, tt.want)
 			}
 		})
 	}

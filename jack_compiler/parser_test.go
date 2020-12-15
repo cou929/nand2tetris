@@ -32,6 +32,13 @@ func MockNodes(nodes []TreeNode, typ NodeType, terminal bool) TreeNode {
 	}
 }
 
+func AdaptTokenToNodeWithMeta(token Token, meta *IDMeta) TreeNode {
+	node := NewLeafNode(token.Type(), token.Name(), true)
+	node.SetValue(token.String())
+	node.IDMeta = meta
+	return node
+}
+
 func TestParser_parseKeywordConstant(t *testing.T) {
 	type args struct {
 		tokens TokenList

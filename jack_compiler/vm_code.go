@@ -20,6 +20,10 @@ func (v *VmCode) pushConstant(in int) string {
 	return fmt.Sprintf("push constant %d", in)
 }
 
+func (v *VmCode) pop(seg string, idx int) string {
+	return fmt.Sprintf("pop %s %d", seg, idx)
+}
+
 func (v *VmCode) add() string {
 	return "add"
 }

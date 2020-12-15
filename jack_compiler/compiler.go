@@ -283,6 +283,31 @@ func (c *Compiler) compileStatement(pt TreeNode) ([]string, error) {
 
 func (c *Compiler) compileLetStatement(pt TreeNode) ([]string, error) {
 	var res []string
+	varName := pt.ChildNodes()[1]
+	expIndex := 3
+	if pt.ChildNodes()[2].Type() == SymbolType && pt.ChildNodes()[2].Value() == "[" {
+		expIndex = 6
+		return nil, fmt.Errorf("Not implemented yet. array[i]")
+	}
+	exp := pt.ChildNodes()[expIndex]
+
+	codes, err := c.compile(exp)
+	if err != nil {
+		return nil, fmt.Errorf("[compileLetStatement] %w", err)
+	}
+	res = append(res, codes...)
+
+	switch varName.Meta().Category {
+	case IdCatStatic:
+		res = append(res, c.vmc.pop("static", varName.Meta().SymbolInfo.Index))
+	case IdCatField:
+		res = append(res, c.vmc.pop("this", varName.Meta().SymbolInfo.Index))
+	case IdCatArg:
+		res = append(res, c.vmc.pop("argument", varName.Meta().SymbolInfo.Index))
+	case IdCatVar:
+		res = append(res, c.vmc.pop("local", varName.Meta().SymbolInfo.Index))
+	}
+
 	return res, nil
 }
 
