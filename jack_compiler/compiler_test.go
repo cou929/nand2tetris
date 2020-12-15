@@ -94,6 +94,23 @@ func TestCompiler_compileExpression(t *testing.T) {
 			},
 			wantErr: false,
 		},
+		{
+			name:   "unaryOp",
+			fields: fields{NewVmCode()},
+			args: args{
+				MockNodes([]TreeNode{
+					MockNodes([]TreeNode{
+						MockNodes([]TreeNode{AdaptTokenToNode(SymbolToken("-"))}, UnaryOpType, true),
+						MockNodes([]TreeNode{AdaptTokenToNode(IntConstToken(123))}, TermType, true),
+					}, TermType, false),
+				}, ExpressionType, true),
+			},
+			want: []string{
+				"push constant 123",
+				"neg",
+			},
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

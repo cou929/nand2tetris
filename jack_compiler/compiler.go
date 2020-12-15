@@ -58,6 +58,8 @@ func (c *Compiler) compile(pt TreeNode) ([]string, error) {
 	switch pt.Type() {
 	case ClassType:
 		return c.compileClass(pt)
+	case TypeType:
+		return c.compileType(pt)
 	case SubroutineDecType:
 		return c.compileSubroutineDec(pt)
 	case ParameterListType:
@@ -70,12 +72,16 @@ func (c *Compiler) compile(pt TreeNode) ([]string, error) {
 		return c.compileStatements(pt)
 	case StatementType:
 		return c.compileStatement(pt)
+	case LetStatementType:
+		return c.compileLetStatement(pt)
+	case IfStatementType:
+		return c.compileIfStatement(pt)
+	case WhileStatementType:
+		return c.compileWhileStatement(pt)
 	case DoStatementType:
 		return c.compileDoStatement(pt)
 	case ReturnStatementType:
 		return c.compileReturnStatement(pt)
-	case IdentifierType:
-		return c.compileIdentifier(pt)
 	case ExpressionType:
 		return c.compileExpression(pt)
 	case SubroutineCallType:
@@ -84,6 +90,8 @@ func (c *Compiler) compile(pt TreeNode) ([]string, error) {
 		return c.compileExpressionList(pt)
 	case OpType:
 		return c.compileOp(pt)
+	case UnaryOpType:
+		return c.compileUnaryOp(pt)
 	}
 	return []string{}, fmt.Errorf("Not supported %v", pt.Type())
 }
@@ -168,6 +176,10 @@ func (c *Compiler) compileClass(pt TreeNode) ([]string, error) {
 		res = append(res, codes...)
 	}
 	return res, nil
+}
+
+func (c *Compiler) compileType(pt TreeNode) ([]string, error) {
+	return nil, nil
 }
 
 func (c *Compiler) compileSubroutineDec(pt TreeNode) ([]string, error) {
@@ -269,6 +281,21 @@ func (c *Compiler) compileStatement(pt TreeNode) ([]string, error) {
 	return res, nil
 }
 
+func (c *Compiler) compileLetStatement(pt TreeNode) ([]string, error) {
+	var res []string
+	return res, nil
+}
+
+func (c *Compiler) compileIfStatement(pt TreeNode) ([]string, error) {
+	var res []string
+	return res, nil
+}
+
+func (c *Compiler) compileWhileStatement(pt TreeNode) ([]string, error) {
+	var res []string
+	return res, nil
+}
+
 func (c *Compiler) compileDoStatement(pt TreeNode) ([]string, error) {
 	var res []string
 	for _, node := range pt.ChildNodes() {
@@ -291,10 +318,6 @@ func (c *Compiler) compileReturnStatement(pt TreeNode) ([]string, error) {
 	}
 	res = append(res, c.vmc.ret())
 	return res, nil
-}
-
-func (c *Compiler) compileIdentifier(pt TreeNode) ([]string, error) {
-	return []string{}, nil
 }
 
 func (c *Compiler) compileExpression(pt TreeNode) ([]string, error) {
@@ -329,28 +352,22 @@ func (c *Compiler) traverseExpression(exps []TreeNode) ([]string, error) {
 				return nil, fmt.Errorf("[compileExpression] %w", err)
 			}
 			res = append(res, codes...)
+		case UnaryOpType:
+			op := term.ChildNodes()[0]
+			term := term.ChildNodes()[1]
+			codes, err := c.traverseExpression([]TreeNode{term})
+			if err != nil {
+				return nil, fmt.Errorf("[compileExpression] %w", err)
+			}
+			res = append(res, codes...)
+			codes, err = c.compile(op)
+			if err != nil {
+				return nil, fmt.Errorf("[compileExpression] %w", err)
+			}
+			res = append(res, codes...)
 		default:
 			return nil, fmt.Errorf("[compileExpression] Invalid node %v", term)
 		}
-	}
-
-	if len(exps) == 2 {
-		op := exps[0]
-		term := exps[1]
-
-		codes, err := c.traverseExpression([]TreeNode{term})
-		if err != nil {
-			return nil, fmt.Errorf("[compileExpression] %w", err)
-		}
-		res = append(res, codes...)
-
-		codes, err = c.compile(op)
-		if err != nil {
-			return nil, fmt.Errorf("[compileExpression] %w", err)
-		}
-		res = append(res, codes...)
-
-		return res, nil
 	}
 
 	if len(exps) >= 3 {
@@ -419,6 +436,9 @@ func (c *Compiler) compileSubroutineCall(pt TreeNode) ([]string, error) {
 func (c *Compiler) compileExpressionList(pt TreeNode) ([]string, error) {
 	var res []string
 	for _, node := range pt.ChildNodes() {
+		if node.Type() != ExpressionType {
+			continue
+		}
 		codes, err := c.compile(node)
 		if err != nil {
 			return nil, fmt.Errorf("[compileExpressionList] %w", err)
@@ -449,6 +469,16 @@ func (c *Compiler) compileOp(pt TreeNode) ([]string, error) {
 		return []string{c.vmc.gt()}, nil
 	case "=":
 		return []string{c.vmc.eq()}, nil
+	}
+	return nil, fmt.Errorf("[compileOp] Invalid op %v", pt)
+}
+
+func (c *Compiler) compileUnaryOp(pt TreeNode) ([]string, error) {
+	switch pt.Value() {
+	case "-":
+		return []string{c.vmc.neg()}, nil
+	case "~":
+		return []string{c.vmc.not()}, nil
 	}
 	return nil, fmt.Errorf("[compileOp] Invalid op %v", pt)
 }

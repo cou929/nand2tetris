@@ -60,6 +60,10 @@ func (v *VmCode) or() string {
 	return "or"
 }
 
+func (v *VmCode) not() string {
+	return "not"
+}
+
 func (v *VmCode) ret() string {
 	return "return"
 }
