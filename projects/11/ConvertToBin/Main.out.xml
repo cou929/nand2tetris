@@ -1,0 +1,493 @@
+<class>
+<keyword>class</keyword>
+<identifier category="IdCatClass" declaration="true">Main</identifier>
+<symbol>{</symbol>
+<subroutineDec>
+<keyword>function</keyword>
+<keyword>void</keyword>
+<identifier category="IdCatSub" declaration="true">main</identifier>
+<symbol>(</symbol>
+<parameterList>
+</parameterList>
+<symbol>)</symbol>
+<subroutineBody>
+<symbol>{</symbol>
+<varDec>
+<keyword>var</keyword>
+<keyword>int</keyword>
+<identifier category="IdCatVar" declaration="true" kind="Var" type="int" index="0">value</identifier>
+<symbol>;</symbol>
+</varDec>
+<statements>
+<doStatement>
+<keyword>do</keyword>
+<identifier category="IdCatClass" declaration="false">Main</identifier>
+<symbol>.</symbol>
+<identifier category="IdCatSub" declaration="false">fillMemory</identifier>
+<symbol>(</symbol>
+<expressionList>
+<expression>
+<term>
+<integerConstant>8001</integerConstant>
+</term>
+</expression>
+<symbol>,</symbol>
+<expression>
+<term>
+<integerConstant>16</integerConstant>
+</term>
+</expression>
+<symbol>,</symbol>
+<expression>
+<term>
+<symbol>-</symbol>
+<term>
+<integerConstant>1</integerConstant>
+</term>
+</term>
+</expression>
+</expressionList>
+<symbol>)</symbol>
+<symbol>;</symbol>
+</doStatement>
+<letStatement>
+<keyword>let</keyword>
+<identifier category="IdCatVar" declaration="false" kind="Var" type="int" index="0">value</identifier>
+<symbol>=</symbol>
+<expression>
+<term>
+<identifier category="IdCatClass" declaration="false">Memory</identifier>
+<symbol>.</symbol>
+<identifier category="IdCatSub" declaration="false">peek</identifier>
+<symbol>(</symbol>
+<expressionList>
+<expression>
+<term>
+<integerConstant>8000</integerConstant>
+</term>
+</expression>
+</expressionList>
+<symbol>)</symbol>
+</term>
+</expression>
+<symbol>;</symbol>
+</letStatement>
+<doStatement>
+<keyword>do</keyword>
+<identifier category="IdCatClass" declaration="false">Main</identifier>
+<symbol>.</symbol>
+<identifier category="IdCatSub" declaration="false">convert</identifier>
+<symbol>(</symbol>
+<expressionList>
+<expression>
+<term>
+<identifier category="IdCatVar" declaration="false" kind="Var" type="int" index="0">value</identifier>
+</term>
+</expression>
+</expressionList>
+<symbol>)</symbol>
+<symbol>;</symbol>
+</doStatement>
+<returnStatement>
+<keyword>return</keyword>
+<symbol>;</symbol>
+</returnStatement>
+</statements>
+<symbol>}</symbol>
+</subroutineBody>
+</subroutineDec>
+<subroutineDec>
+<keyword>function</keyword>
+<keyword>void</keyword>
+<identifier category="IdCatSub" declaration="true">convert</identifier>
+<symbol>(</symbol>
+<parameterList>
+<keyword>int</keyword>
+<identifier category="IdCatArg" declaration="true" kind="Argument" type="int" index="0">value</identifier>
+</parameterList>
+<symbol>)</symbol>
+<subroutineBody>
+<symbol>{</symbol>
+<varDec>
+<keyword>var</keyword>
+<keyword>int</keyword>
+<identifier category="IdCatVar" declaration="true" kind="Var" type="int" index="0">mask</identifier>
+<symbol>,</symbol>
+<identifier category="IdCatVar" declaration="true" kind="Var" type="int" index="1">position</identifier>
+<symbol>;</symbol>
+</varDec>
+<varDec>
+<keyword>var</keyword>
+<keyword>boolean</keyword>
+<identifier category="IdCatVar" declaration="true" kind="Var" type="boolean" index="2">loop</identifier>
+<symbol>;</symbol>
+</varDec>
+<statements>
+<letStatement>
+<keyword>let</keyword>
+<identifier category="IdCatVar" declaration="false" kind="Var" type="boolean" index="2">loop</identifier>
+<symbol>=</symbol>
+<expression>
+<term>
+<keyword>true</keyword>
+</term>
+</expression>
+<symbol>;</symbol>
+</letStatement>
+<whileStatement>
+<keyword>while</keyword>
+<symbol>(</symbol>
+<expression>
+<term>
+<identifier category="IdCatVar" declaration="false" kind="Var" type="boolean" index="2">loop</identifier>
+</term>
+</expression>
+<symbol>)</symbol>
+<symbol>{</symbol>
+<statements>
+<letStatement>
+<keyword>let</keyword>
+<identifier category="IdCatVar" declaration="false" kind="Var" type="int" index="1">position</identifier>
+<symbol>=</symbol>
+<expression>
+<term>
+<identifier category="IdCatVar" declaration="false" kind="Var" type="int" index="1">position</identifier>
+</term>
+<symbol>+</symbol>
+<term>
+<integerConstant>1</integerConstant>
+</term>
+</expression>
+<symbol>;</symbol>
+</letStatement>
+<letStatement>
+<keyword>let</keyword>
+<identifier category="IdCatVar" declaration="false" kind="Var" type="int" index="0">mask</identifier>
+<symbol>=</symbol>
+<expression>
+<term>
+<identifier category="IdCatClass" declaration="false">Main</identifier>
+<symbol>.</symbol>
+<identifier category="IdCatSub" declaration="false">nextMask</identifier>
+<symbol>(</symbol>
+<expressionList>
+<expression>
+<term>
+<identifier category="IdCatVar" declaration="false" kind="Var" type="int" index="0">mask</identifier>
+</term>
+</expression>
+</expressionList>
+<symbol>)</symbol>
+</term>
+</expression>
+<symbol>;</symbol>
+</letStatement>
+<ifStatement>
+<keyword>if</keyword>
+<symbol>(</symbol>
+<expression>
+<term>
+<symbol>~</symbol>
+<term>
+<symbol>(</symbol>
+<expression>
+<term>
+<identifier category="IdCatVar" declaration="false" kind="Var" type="int" index="1">position</identifier>
+</term>
+<symbol>&gt;</symbol>
+<term>
+<integerConstant>16</integerConstant>
+</term>
+</expression>
+<symbol>)</symbol>
+</term>
+</term>
+</expression>
+<symbol>)</symbol>
+<symbol>{</symbol>
+<statements>
+<ifStatement>
+<keyword>if</keyword>
+<symbol>(</symbol>
+<expression>
+<term>
+<symbol>~</symbol>
+<term>
+<symbol>(</symbol>
+<expression>
+<term>
+<symbol>(</symbol>
+<expression>
+<term>
+<identifier category="IdCatArg" declaration="false" kind="Argument" type="int" index="0">value</identifier>
+</term>
+<symbol>&amp;</symbol>
+<term>
+<identifier category="IdCatVar" declaration="false" kind="Var" type="int" index="0">mask</identifier>
+</term>
+</expression>
+<symbol>)</symbol>
+</term>
+<symbol>=</symbol>
+<term>
+<integerConstant>0</integerConstant>
+</term>
+</expression>
+<symbol>)</symbol>
+</term>
+</term>
+</expression>
+<symbol>)</symbol>
+<symbol>{</symbol>
+<statements>
+<doStatement>
+<keyword>do</keyword>
+<identifier category="IdCatClass" declaration="false">Memory</identifier>
+<symbol>.</symbol>
+<identifier category="IdCatSub" declaration="false">poke</identifier>
+<symbol>(</symbol>
+<expressionList>
+<expression>
+<term>
+<integerConstant>8000</integerConstant>
+</term>
+<symbol>+</symbol>
+<term>
+<identifier category="IdCatVar" declaration="false" kind="Var" type="int" index="1">position</identifier>
+</term>
+</expression>
+<symbol>,</symbol>
+<expression>
+<term>
+<integerConstant>1</integerConstant>
+</term>
+</expression>
+</expressionList>
+<symbol>)</symbol>
+<symbol>;</symbol>
+</doStatement>
+</statements>
+<symbol>}</symbol>
+<keyword>else</keyword>
+<symbol>{</symbol>
+<statements>
+<doStatement>
+<keyword>do</keyword>
+<identifier category="IdCatClass" declaration="false">Memory</identifier>
+<symbol>.</symbol>
+<identifier category="IdCatSub" declaration="false">poke</identifier>
+<symbol>(</symbol>
+<expressionList>
+<expression>
+<term>
+<integerConstant>8000</integerConstant>
+</term>
+<symbol>+</symbol>
+<term>
+<identifier category="IdCatVar" declaration="false" kind="Var" type="int" index="1">position</identifier>
+</term>
+</expression>
+<symbol>,</symbol>
+<expression>
+<term>
+<integerConstant>0</integerConstant>
+</term>
+</expression>
+</expressionList>
+<symbol>)</symbol>
+<symbol>;</symbol>
+</doStatement>
+</statements>
+<symbol>}</symbol>
+</ifStatement>
+</statements>
+<symbol>}</symbol>
+<keyword>else</keyword>
+<symbol>{</symbol>
+<statements>
+<letStatement>
+<keyword>let</keyword>
+<identifier category="IdCatVar" declaration="false" kind="Var" type="boolean" index="2">loop</identifier>
+<symbol>=</symbol>
+<expression>
+<term>
+<keyword>false</keyword>
+</term>
+</expression>
+<symbol>;</symbol>
+</letStatement>
+</statements>
+<symbol>}</symbol>
+</ifStatement>
+</statements>
+<symbol>}</symbol>
+</whileStatement>
+<returnStatement>
+<keyword>return</keyword>
+<symbol>;</symbol>
+</returnStatement>
+</statements>
+<symbol>}</symbol>
+</subroutineBody>
+</subroutineDec>
+<subroutineDec>
+<keyword>function</keyword>
+<keyword>int</keyword>
+<identifier category="IdCatSub" declaration="true">nextMask</identifier>
+<symbol>(</symbol>
+<parameterList>
+<keyword>int</keyword>
+<identifier category="IdCatArg" declaration="true" kind="Argument" type="int" index="0">mask</identifier>
+</parameterList>
+<symbol>)</symbol>
+<subroutineBody>
+<symbol>{</symbol>
+<statements>
+<ifStatement>
+<keyword>if</keyword>
+<symbol>(</symbol>
+<expression>
+<term>
+<identifier category="IdCatArg" declaration="false" kind="Argument" type="int" index="0">mask</identifier>
+</term>
+<symbol>=</symbol>
+<term>
+<integerConstant>0</integerConstant>
+</term>
+</expression>
+<symbol>)</symbol>
+<symbol>{</symbol>
+<statements>
+<returnStatement>
+<keyword>return</keyword>
+<expression>
+<term>
+<integerConstant>1</integerConstant>
+</term>
+</expression>
+<symbol>;</symbol>
+</returnStatement>
+</statements>
+<symbol>}</symbol>
+<keyword>else</keyword>
+<symbol>{</symbol>
+<statements>
+<returnStatement>
+<keyword>return</keyword>
+<expression>
+<term>
+<identifier category="IdCatArg" declaration="false" kind="Argument" type="int" index="0">mask</identifier>
+</term>
+<symbol>*</symbol>
+<term>
+<integerConstant>2</integerConstant>
+</term>
+</expression>
+<symbol>;</symbol>
+</returnStatement>
+</statements>
+<symbol>}</symbol>
+</ifStatement>
+</statements>
+<symbol>}</symbol>
+</subroutineBody>
+</subroutineDec>
+<subroutineDec>
+<keyword>function</keyword>
+<keyword>void</keyword>
+<identifier category="IdCatSub" declaration="true">fillMemory</identifier>
+<symbol>(</symbol>
+<parameterList>
+<keyword>int</keyword>
+<identifier category="IdCatArg" declaration="true" kind="Argument" type="int" index="0">startAddress</identifier>
+<symbol>,</symbol>
+<keyword>int</keyword>
+<identifier category="IdCatArg" declaration="true" kind="Argument" type="int" index="1">length</identifier>
+<symbol>,</symbol>
+<keyword>int</keyword>
+<identifier category="IdCatArg" declaration="true" kind="Argument" type="int" index="2">value</identifier>
+</parameterList>
+<symbol>)</symbol>
+<subroutineBody>
+<symbol>{</symbol>
+<statements>
+<whileStatement>
+<keyword>while</keyword>
+<symbol>(</symbol>
+<expression>
+<term>
+<identifier category="IdCatArg" declaration="false" kind="Argument" type="int" index="1">length</identifier>
+</term>
+<symbol>&gt;</symbol>
+<term>
+<integerConstant>0</integerConstant>
+</term>
+</expression>
+<symbol>)</symbol>
+<symbol>{</symbol>
+<statements>
+<doStatement>
+<keyword>do</keyword>
+<identifier category="IdCatClass" declaration="false">Memory</identifier>
+<symbol>.</symbol>
+<identifier category="IdCatSub" declaration="false">poke</identifier>
+<symbol>(</symbol>
+<expressionList>
+<expression>
+<term>
+<identifier category="IdCatArg" declaration="false" kind="Argument" type="int" index="0">startAddress</identifier>
+</term>
+</expression>
+<symbol>,</symbol>
+<expression>
+<term>
+<identifier category="IdCatArg" declaration="false" kind="Argument" type="int" index="2">value</identifier>
+</term>
+</expression>
+</expressionList>
+<symbol>)</symbol>
+<symbol>;</symbol>
+</doStatement>
+<letStatement>
+<keyword>let</keyword>
+<identifier category="IdCatArg" declaration="false" kind="Argument" type="int" index="1">length</identifier>
+<symbol>=</symbol>
+<expression>
+<term>
+<identifier category="IdCatArg" declaration="false" kind="Argument" type="int" index="1">length</identifier>
+</term>
+<symbol>-</symbol>
+<term>
+<integerConstant>1</integerConstant>
+</term>
+</expression>
+<symbol>;</symbol>
+</letStatement>
+<letStatement>
+<keyword>let</keyword>
+<identifier category="IdCatArg" declaration="false" kind="Argument" type="int" index="0">startAddress</identifier>
+<symbol>=</symbol>
+<expression>
+<term>
+<identifier category="IdCatArg" declaration="false" kind="Argument" type="int" index="0">startAddress</identifier>
+</term>
+<symbol>+</symbol>
+<term>
+<integerConstant>1</integerConstant>
+</term>
+</expression>
+<symbol>;</symbol>
+</letStatement>
+</statements>
+<symbol>}</symbol>
+</whileStatement>
+<returnStatement>
+<keyword>return</keyword>
+<symbol>;</symbol>
+</returnStatement>
+</statements>
+<symbol>}</symbol>
+</subroutineBody>
+</subroutineDec>
+<symbol>}</symbol>
+</class>
