@@ -183,3 +183,146 @@ func TestCompiler_compileLetStatement(t *testing.T) {
 		})
 	}
 }
+
+func TestCompiler_compileIfStatement(t *testing.T) {
+	type fields struct {
+		curClassName string
+		curFuncInfo  *funcInfo
+		ifCounter    int
+	}
+	type args struct {
+		pt TreeNode
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		want    []string
+		wantErr bool
+	}{
+		{
+			name:   "if only",
+			fields: fields{"MyClass", &funcInfo{name: "MyFunc"}, 5},
+			args: args{
+				MockNodes([]TreeNode{
+					AdaptTokenToNode(KeywordToken("if")),
+					AdaptTokenToNode(SymbolToken("(")),
+					MockNodes([]TreeNode{
+						MockNodes([]TreeNode{AdaptTokenToNode(IntConstToken(100))}, TermType, false),
+						MockNodes([]TreeNode{AdaptTokenToNode(SymbolToken(">"))}, OpType, true),
+						MockNodes([]TreeNode{AdaptTokenToNode(IntConstToken(99))}, TermType, false),
+					}, ExpressionType, false),
+					AdaptTokenToNode(SymbolToken(")")),
+					AdaptTokenToNode(SymbolToken("{")),
+					MockNodes([]TreeNode{
+						MockNodes([]TreeNode{
+							MockNodes([]TreeNode{
+								AdaptTokenToNode(KeywordToken("let")),
+								MockNodes([]TreeNode{AdaptTokenToNodeWithMeta(IdentifierToken("x"), &IDMeta{Category: IdCatVar, SymbolInfo: &SymbolInfo{Index: 2}})}, VarNameType, true),
+								AdaptTokenToNode(SymbolToken("=")),
+								MockNodes([]TreeNode{
+									MockNodes([]TreeNode{AdaptTokenToNode(IntConstToken(100))}, TermType, false),
+								}, ExpressionType, false),
+								AdaptTokenToNode(SymbolToken(";")),
+							}, LetStatementType, true),
+						}, StatementType, true),
+					}, StatementsType, false),
+					AdaptTokenToNode(SymbolToken("}")),
+				}, IfStatementType, true),
+			},
+			want: []string{
+				"push constant 100",
+				"push constant 99",
+				"gt",
+				"not",
+				"if-goto MyClass.MyFunc.5.IF.ELSE",
+				"push constant 100",
+				"pop local 2",
+				"goto MyClass.MyFunc.5.IF.END",
+				"label MyClass.MyFunc.5.IF.ELSE",
+				"label MyClass.MyFunc.5.IF.END",
+			},
+			wantErr: false,
+		},
+		{
+			name:   "if only",
+			fields: fields{"MyClass", &funcInfo{name: "MyFunc"}, 5},
+			args: args{
+				MockNodes([]TreeNode{
+					AdaptTokenToNode(KeywordToken("if")),
+					AdaptTokenToNode(SymbolToken("(")),
+					MockNodes([]TreeNode{
+						MockNodes([]TreeNode{AdaptTokenToNode(IntConstToken(100))}, TermType, false),
+						MockNodes([]TreeNode{AdaptTokenToNode(SymbolToken(">"))}, OpType, true),
+						MockNodes([]TreeNode{AdaptTokenToNode(IntConstToken(99))}, TermType, false),
+					}, ExpressionType, false),
+					AdaptTokenToNode(SymbolToken(")")),
+					AdaptTokenToNode(SymbolToken("{")),
+					MockNodes([]TreeNode{
+						MockNodes([]TreeNode{
+							MockNodes([]TreeNode{
+								AdaptTokenToNode(KeywordToken("let")),
+								MockNodes([]TreeNode{AdaptTokenToNodeWithMeta(IdentifierToken("x"), &IDMeta{Category: IdCatVar, SymbolInfo: &SymbolInfo{Index: 2}})}, VarNameType, true),
+								AdaptTokenToNode(SymbolToken("=")),
+								MockNodes([]TreeNode{
+									MockNodes([]TreeNode{AdaptTokenToNode(IntConstToken(100))}, TermType, false),
+								}, ExpressionType, false),
+								AdaptTokenToNode(SymbolToken(";")),
+							}, LetStatementType, true),
+						}, StatementType, true),
+					}, StatementsType, false),
+					AdaptTokenToNode(SymbolToken("}")),
+					AdaptTokenToNode(KeywordToken("else")),
+					AdaptTokenToNode(SymbolToken("{")),
+					MockNodes([]TreeNode{
+						MockNodes([]TreeNode{
+							MockNodes([]TreeNode{
+								AdaptTokenToNode(KeywordToken("let")),
+								MockNodes([]TreeNode{AdaptTokenToNodeWithMeta(IdentifierToken("x"), &IDMeta{Category: IdCatVar, SymbolInfo: &SymbolInfo{Index: 2}})}, VarNameType, true),
+								AdaptTokenToNode(SymbolToken("=")),
+								MockNodes([]TreeNode{
+									MockNodes([]TreeNode{AdaptTokenToNode(IntConstToken(200))}, TermType, false),
+								}, ExpressionType, false),
+								AdaptTokenToNode(SymbolToken(";")),
+							}, LetStatementType, true),
+						}, StatementType, true),
+					}, StatementsType, false),
+					AdaptTokenToNode(SymbolToken("}")),
+				}, IfStatementType, true),
+			},
+			want: []string{
+				"push constant 100",
+				"push constant 99",
+				"gt",
+				"not",
+				"if-goto MyClass.MyFunc.5.IF.ELSE",
+				"push constant 100",
+				"pop local 2",
+				"goto MyClass.MyFunc.5.IF.END",
+				"label MyClass.MyFunc.5.IF.ELSE",
+				"push constant 200",
+				"pop local 2",
+				"label MyClass.MyFunc.5.IF.END",
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := &Compiler{
+				curClassName: tt.fields.curClassName,
+				curFuncInfo:  tt.fields.curFuncInfo,
+				ifCounter:    tt.fields.ifCounter,
+				vmc:          NewVmCode(),
+			}
+			got, err := c.compileIfStatement(tt.args.pt)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("Compiler.compileIfStatement() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("Compiler.compileIfStatement() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}

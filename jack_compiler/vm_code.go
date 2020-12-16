@@ -87,3 +87,15 @@ func (v *VmCode) false() string {
 func (v *VmCode) null() string {
 	return v.pushConstant(0)
 }
+
+func (v *VmCode) goTo(label string) string {
+	return fmt.Sprintf("goto %s", label)
+}
+
+func (v *VmCode) ifGoTo(label string) string {
+	return fmt.Sprintf("if-goto %s", label)
+}
+
+func (v *VmCode) label(label string) string {
+	return fmt.Sprintf("label %s", label)
+}

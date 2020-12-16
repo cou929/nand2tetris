@@ -10,6 +10,7 @@ type Compiler struct {
 	curClassName    string
 	curFuncInfo     *funcInfo
 	callingArgCount int
+	ifCounter       int
 	vmc             *VmCode
 }
 
@@ -96,6 +97,13 @@ func (c *Compiler) compile(pt TreeNode) ([]string, error) {
 	return []string{}, fmt.Errorf("Not supported %v", pt.Type())
 }
 
+func (c *Compiler) resetAllState() {
+	c.resetClassState()
+	c.resetFuncState()
+	c.resetCallingArgCount()
+	c.resetIfCounter()
+}
+
 func (c *Compiler) resetClassState() {
 	c.curClassName = ""
 }
@@ -152,8 +160,16 @@ func (c *Compiler) incCallingArgCount() {
 	c.callingArgCount++
 }
 
+func (c *Compiler) resetIfCounter() {
+	c.ifCounter = 0
+}
+
+func (c *Compiler) incIfCounter() {
+	c.ifCounter++
+}
+
 func (c *Compiler) compileClass(pt TreeNode) ([]string, error) {
-	c.resetClassState()
+	c.resetAllState()
 
 	var res []string
 	for _, node := range pt.ChildNodes() {
@@ -313,6 +329,39 @@ func (c *Compiler) compileLetStatement(pt TreeNode) ([]string, error) {
 
 func (c *Compiler) compileIfStatement(pt TreeNode) ([]string, error) {
 	var res []string
+	suffix := c.ifCounter
+	endLabel := fmt.Sprintf("%s.%s.%d.IF.END", c.curClassName, c.curFuncInfo.name, suffix)
+	elseLabel := fmt.Sprintf("%s.%s.%d.IF.ELSE", c.curClassName, c.curFuncInfo.name, suffix)
+
+	// ~(cond)
+	cond, err := c.compile(pt.ChildNodes()[2])
+	if err != nil {
+		return nil, fmt.Errorf("[compileIfStatement] %w", err)
+	}
+	condNot := append(cond, c.vmc.not())
+	res = append(res, condNot...)
+
+	// if statement
+	res = append(res, c.vmc.ifGoTo(elseLabel))
+	ifStatement, err := c.compile(pt.ChildNodes()[5])
+	if err != nil {
+		return nil, fmt.Errorf("[compileIfStatement] %w", err)
+	}
+	res = append(res, ifStatement...)
+	res = append(res, c.vmc.goTo(endLabel))
+
+	// else statement
+	res = append(res, c.vmc.label(elseLabel))
+	if len(pt.ChildNodes()) > 10 {
+		elseStatement, err := c.compile(pt.ChildNodes()[9])
+		if err != nil {
+			return nil, fmt.Errorf("[compileIfStatement] %w", err)
+		}
+		res = append(res, elseStatement...)
+	}
+	res = append(res, c.vmc.label(endLabel))
+
+	c.incIfCounter()
 	return res, nil
 }
 
