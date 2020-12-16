@@ -327,6 +327,7 @@ func (c *Compiler) compileLetStatement(pt TreeNode) ([]string, error) {
 func (c *Compiler) compileIfStatement(pt TreeNode) ([]string, error) {
 	var res []string
 	suffix := c.ifCounter
+	c.incIfCounter()
 	endLabel := fmt.Sprintf("%s.%s.%d.IF.END", c.curClassName, c.curFuncInfo.name, suffix)
 	elseLabel := fmt.Sprintf("%s.%s.%d.IF.ELSE", c.curClassName, c.curFuncInfo.name, suffix)
 
@@ -358,13 +359,13 @@ func (c *Compiler) compileIfStatement(pt TreeNode) ([]string, error) {
 	}
 	res = append(res, c.vmc.label(endLabel))
 
-	c.incIfCounter()
 	return res, nil
 }
 
 func (c *Compiler) compileWhileStatement(pt TreeNode) ([]string, error) {
 	var res []string
 	suffix := c.whileCounter
+	c.incWhileCounter()
 	contLabel := fmt.Sprintf("%s.%s.%d.WHILE.CONT", c.curClassName, c.curFuncInfo.name, suffix)
 	endLabel := fmt.Sprintf("%s.%s.%d.WHILE.END", c.curClassName, c.curFuncInfo.name, suffix)
 
@@ -388,7 +389,6 @@ func (c *Compiler) compileWhileStatement(pt TreeNode) ([]string, error) {
 	res = append(res, c.vmc.goTo(contLabel))
 	res = append(res, c.vmc.label(endLabel))
 
-	c.incWhileCounter()
 	return res, nil
 }
 

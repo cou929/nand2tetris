@@ -307,6 +307,76 @@ func TestCompiler_compileIfStatement(t *testing.T) {
 			},
 			wantErr: false,
 		},
+		{
+			name:   "nest",
+			fields: fields{"MyClass", &funcInfo{name: "MyFunc"}, 5},
+			args: args{
+				MockNodes([]TreeNode{
+					AdaptTokenToNode(KeywordToken("if")),
+					AdaptTokenToNode(SymbolToken("(")),
+					MockNodes([]TreeNode{
+						MockNodes([]TreeNode{AdaptTokenToNode(IntConstToken(100))}, TermType, false),
+						MockNodes([]TreeNode{AdaptTokenToNode(SymbolToken(">"))}, OpType, true),
+						MockNodes([]TreeNode{AdaptTokenToNode(IntConstToken(99))}, TermType, false),
+					}, ExpressionType, false),
+					AdaptTokenToNode(SymbolToken(")")),
+					AdaptTokenToNode(SymbolToken("{")),
+					MockNodes([]TreeNode{
+						MockNodes([]TreeNode{
+							MockNodes([]TreeNode{
+								AdaptTokenToNode(KeywordToken("if")),
+								AdaptTokenToNode(SymbolToken("(")),
+								MockNodes([]TreeNode{
+									MockNodes([]TreeNode{AdaptTokenToNode(IntConstToken(10))}, TermType, false),
+									MockNodes([]TreeNode{AdaptTokenToNode(SymbolToken(">"))}, OpType, true),
+									MockNodes([]TreeNode{AdaptTokenToNode(IntConstToken(9))}, TermType, false),
+								}, ExpressionType, false),
+								AdaptTokenToNode(SymbolToken(")")),
+								AdaptTokenToNode(SymbolToken("{")),
+								MockNodes([]TreeNode{
+									MockNodes([]TreeNode{
+										MockNodes([]TreeNode{
+											AdaptTokenToNode(KeywordToken("let")),
+											MockNodes([]TreeNode{AdaptTokenToNodeWithMeta(IdentifierToken("x"), &IDMeta{Category: IdCatVar, SymbolInfo: &SymbolInfo{Index: 2}})}, VarNameType, true),
+											AdaptTokenToNode(SymbolToken("=")),
+											MockNodes([]TreeNode{
+												MockNodes([]TreeNode{AdaptTokenToNode(IntConstToken(100))}, TermType, false),
+											}, ExpressionType, false),
+											AdaptTokenToNode(SymbolToken(";")),
+										}, LetStatementType, true),
+									}, StatementType, true),
+								}, StatementsType, false),
+								AdaptTokenToNode(SymbolToken("}")),
+							}, IfStatementType, true),
+						}, StatementType, true),
+					}, StatementsType, false),
+					AdaptTokenToNode(SymbolToken("}")),
+				}, IfStatementType, true),
+			},
+			want: []string{
+				"push constant 100",
+				"push constant 99",
+				"gt",
+				"not",
+				"if-goto MyClass.MyFunc.5.IF.ELSE",
+				// inner
+				"push constant 10",
+				"push constant 9",
+				"gt",
+				"not",
+				"if-goto MyClass.MyFunc.6.IF.ELSE",
+				"push constant 100",
+				"pop local 2",
+				"goto MyClass.MyFunc.6.IF.END",
+				"label MyClass.MyFunc.6.IF.ELSE",
+				"label MyClass.MyFunc.6.IF.END",
+				// end of inner
+				"goto MyClass.MyFunc.5.IF.END",
+				"label MyClass.MyFunc.5.IF.ELSE",
+				"label MyClass.MyFunc.5.IF.END",
+			},
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -391,6 +461,105 @@ func TestCompiler_compileWhileStatement(t *testing.T) {
 				"push constant 1",
 				"add",
 				"pop local 2",
+				"goto MyClass.MyFunc.5.WHILE.CONT",
+				"label MyClass.MyFunc.5.WHILE.END",
+			},
+			wantErr: false,
+		},
+		{
+			name:   "nest",
+			fields: fields{"MyClass", &funcInfo{name: "MyFunc"}, 5},
+			args: args{
+				MockNodes([]TreeNode{
+					AdaptTokenToNode(KeywordToken("while")),
+					AdaptTokenToNode(SymbolToken("(")),
+					MockNodes([]TreeNode{
+						MockNodes([]TreeNode{
+							MockNodes([]TreeNode{AdaptTokenToNodeWithMeta(IdentifierToken("x"), &IDMeta{Category: IdCatVar, SymbolInfo: &SymbolInfo{Index: 2}})}, VarNameType, true),
+						}, TermType, false),
+						MockNodes([]TreeNode{AdaptTokenToNode(SymbolToken(">"))}, OpType, true),
+						MockNodes([]TreeNode{AdaptTokenToNode(IntConstToken(10))}, TermType, false),
+					}, ExpressionType, false),
+					AdaptTokenToNode(SymbolToken(")")),
+					AdaptTokenToNode(SymbolToken("{")),
+					MockNodes([]TreeNode{
+						MockNodes([]TreeNode{
+							MockNodes([]TreeNode{
+								AdaptTokenToNode(KeywordToken("while")),
+								AdaptTokenToNode(SymbolToken("(")),
+								MockNodes([]TreeNode{
+									MockNodes([]TreeNode{
+										MockNodes([]TreeNode{AdaptTokenToNodeWithMeta(IdentifierToken("y"), &IDMeta{Category: IdCatVar, SymbolInfo: &SymbolInfo{Index: 3}})}, VarNameType, true),
+									}, TermType, false),
+									MockNodes([]TreeNode{AdaptTokenToNode(SymbolToken(">"))}, OpType, true),
+									MockNodes([]TreeNode{AdaptTokenToNode(IntConstToken(100))}, TermType, false),
+								}, ExpressionType, false),
+								AdaptTokenToNode(SymbolToken(")")),
+								AdaptTokenToNode(SymbolToken("{")),
+								MockNodes([]TreeNode{
+									MockNodes([]TreeNode{
+										MockNodes([]TreeNode{
+											AdaptTokenToNode(KeywordToken("let")),
+											MockNodes([]TreeNode{AdaptTokenToNodeWithMeta(IdentifierToken("x"), &IDMeta{Category: IdCatVar, SymbolInfo: &SymbolInfo{Index: 2}})}, VarNameType, true),
+											AdaptTokenToNode(SymbolToken("=")),
+											MockNodes([]TreeNode{
+												MockNodes([]TreeNode{
+													MockNodes([]TreeNode{AdaptTokenToNodeWithMeta(IdentifierToken("2"), &IDMeta{Category: IdCatVar, SymbolInfo: &SymbolInfo{Index: 2}})}, VarNameType, true),
+												}, TermType, false),
+												MockNodes([]TreeNode{AdaptTokenToNode(SymbolToken("+"))}, OpType, true),
+												MockNodes([]TreeNode{AdaptTokenToNode(IntConstToken(1))}, TermType, false),
+											}, ExpressionType, false),
+											AdaptTokenToNode(SymbolToken(";")),
+										}, LetStatementType, true),
+									}, StatementType, true),
+									MockNodes([]TreeNode{
+										MockNodes([]TreeNode{
+											AdaptTokenToNode(KeywordToken("let")),
+											MockNodes([]TreeNode{AdaptTokenToNodeWithMeta(IdentifierToken("y"), &IDMeta{Category: IdCatVar, SymbolInfo: &SymbolInfo{Index: 3}})}, VarNameType, true),
+											AdaptTokenToNode(SymbolToken("=")),
+											MockNodes([]TreeNode{
+												MockNodes([]TreeNode{
+													MockNodes([]TreeNode{AdaptTokenToNodeWithMeta(IdentifierToken("y"), &IDMeta{Category: IdCatVar, SymbolInfo: &SymbolInfo{Index: 3}})}, VarNameType, true),
+												}, TermType, false),
+												MockNodes([]TreeNode{AdaptTokenToNode(SymbolToken("+"))}, OpType, true),
+												MockNodes([]TreeNode{AdaptTokenToNode(IntConstToken(1))}, TermType, false),
+											}, ExpressionType, false),
+											AdaptTokenToNode(SymbolToken(";")),
+										}, LetStatementType, true),
+									}, StatementType, true),
+								}, StatementsType, false),
+								AdaptTokenToNode(SymbolToken("}")),
+							}, WhileStatementType, true),
+						}, StatementType, true),
+					}, StatementsType, false),
+					AdaptTokenToNode(SymbolToken("}")),
+				}, WhileStatementType, true),
+			},
+			want: []string{
+				"label MyClass.MyFunc.5.WHILE.CONT",
+				"push local 2",
+				"push constant 10",
+				"gt",
+				"not",
+				"if-goto MyClass.MyFunc.5.WHILE.END",
+				// inner
+				"label MyClass.MyFunc.6.WHILE.CONT",
+				"push local 3",
+				"push constant 100",
+				"gt",
+				"not",
+				"if-goto MyClass.MyFunc.6.WHILE.END",
+				"push local 2",
+				"push constant 1",
+				"add",
+				"pop local 2",
+				"push local 3",
+				"push constant 1",
+				"add",
+				"pop local 3",
+				"goto MyClass.MyFunc.6.WHILE.CONT",
+				"label MyClass.MyFunc.6.WHILE.END",
+				// end of inner
 				"goto MyClass.MyFunc.5.WHILE.CONT",
 				"label MyClass.MyFunc.5.WHILE.END",
 			},
