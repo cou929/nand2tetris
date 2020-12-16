@@ -378,7 +378,7 @@ func TestCompiler_compileWhileStatement(t *testing.T) {
 						}, StatementType, true),
 					}, StatementsType, false),
 					AdaptTokenToNode(SymbolToken("}")),
-				}, IfStatementType, true),
+				}, WhileStatementType, true),
 			},
 			want: []string{
 				"label MyClass.MyFunc.5.WHILE.CONT",
