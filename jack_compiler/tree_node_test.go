@@ -20,7 +20,7 @@ func TestLeafNode_SetMeta(t *testing.T) {
 		name    string
 		fields  fields
 		args    args
-		want    IDMeta
+		want    *IDMeta
 		wantErr bool
 	}{
 		{
@@ -34,7 +34,7 @@ func TestLeafNode_SetMeta(t *testing.T) {
 				grandParent: ClassType,
 				s:           nil,
 			},
-			want: IDMeta{
+			want: &IDMeta{
 				Category:    IdCatClass,
 				Declaration: true,
 				SymbolInfo:  nil,
