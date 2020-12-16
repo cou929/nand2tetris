@@ -11,6 +11,7 @@ type Compiler struct {
 	curFuncInfo     *funcInfo
 	callingArgCount int
 	ifCounter       int
+	whileCounter    int
 	vmc             *VmCode
 }
 
@@ -102,6 +103,7 @@ func (c *Compiler) resetAllState() {
 	c.resetFuncState()
 	c.resetCallingArgCount()
 	c.resetIfCounter()
+	c.resetWhileCounter()
 }
 
 func (c *Compiler) resetClassState() {
@@ -166,6 +168,14 @@ func (c *Compiler) resetIfCounter() {
 
 func (c *Compiler) incIfCounter() {
 	c.ifCounter++
+}
+
+func (c *Compiler) resetWhileCounter() {
+	c.whileCounter = 0
+}
+
+func (c *Compiler) incWhileCounter() {
+	c.whileCounter++
 }
 
 func (c *Compiler) compileClass(pt TreeNode) ([]string, error) {
@@ -367,6 +377,31 @@ func (c *Compiler) compileIfStatement(pt TreeNode) ([]string, error) {
 
 func (c *Compiler) compileWhileStatement(pt TreeNode) ([]string, error) {
 	var res []string
+	suffix := c.whileCounter
+	contLabel := fmt.Sprintf("%s.%s.%d.WHILE.CONT", c.curClassName, c.curFuncInfo.name, suffix)
+	endLabel := fmt.Sprintf("%s.%s.%d.WHILE.END", c.curClassName, c.curFuncInfo.name, suffix)
+
+	res = append(res, c.vmc.label(contLabel))
+
+	// ~(cond)
+	cond, err := c.compile(pt.ChildNodes()[2])
+	if err != nil {
+		return nil, fmt.Errorf("[compileWhileStatement] %w", err)
+	}
+	condNot := append(cond, c.vmc.not())
+	res = append(res, condNot...)
+	res = append(res, c.vmc.ifGoTo(endLabel))
+
+	// statement
+	stmt, err := c.compile(pt.ChildNodes()[5])
+	if err != nil {
+		return nil, fmt.Errorf("[compileWhileStatement] %w", err)
+	}
+	res = append(res, stmt...)
+	res = append(res, c.vmc.goTo(contLabel))
+	res = append(res, c.vmc.label(endLabel))
+
+	c.incWhileCounter()
 	return res, nil
 }
 

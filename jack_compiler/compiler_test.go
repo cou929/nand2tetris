@@ -3,6 +3,8 @@ package main
 import (
 	"reflect"
 	"testing"
+
+	"github.com/google/go-cmp/cmp"
 )
 
 func TestCompiler_compileSubroutineCall(t *testing.T) {
@@ -322,6 +324,95 @@ func TestCompiler_compileIfStatement(t *testing.T) {
 			}
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("Compiler.compileIfStatement() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestCompiler_compileWhileStatement(t *testing.T) {
+	type fields struct {
+		curClassName string
+		curFuncInfo  *funcInfo
+		whileCounter int
+	}
+	type args struct {
+		pt TreeNode
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		want    []string
+		wantErr bool
+	}{
+		{
+			name:   "if only",
+			fields: fields{"MyClass", &funcInfo{name: "MyFunc"}, 5},
+			args: args{
+				MockNodes([]TreeNode{
+					AdaptTokenToNode(KeywordToken("while")),
+					AdaptTokenToNode(SymbolToken("(")),
+					MockNodes([]TreeNode{
+						MockNodes([]TreeNode{
+							MockNodes([]TreeNode{AdaptTokenToNodeWithMeta(IdentifierToken("x"), &IDMeta{Category: IdCatVar, SymbolInfo: &SymbolInfo{Index: 2}})}, VarNameType, true),
+						}, TermType, false),
+						MockNodes([]TreeNode{AdaptTokenToNode(SymbolToken(">"))}, OpType, true),
+						MockNodes([]TreeNode{AdaptTokenToNode(IntConstToken(10))}, TermType, false),
+					}, ExpressionType, false),
+					AdaptTokenToNode(SymbolToken(")")),
+					AdaptTokenToNode(SymbolToken("{")),
+					MockNodes([]TreeNode{
+						MockNodes([]TreeNode{
+							MockNodes([]TreeNode{
+								AdaptTokenToNode(KeywordToken("let")),
+								MockNodes([]TreeNode{AdaptTokenToNodeWithMeta(IdentifierToken("x"), &IDMeta{Category: IdCatVar, SymbolInfo: &SymbolInfo{Index: 2}})}, VarNameType, true),
+								AdaptTokenToNode(SymbolToken("=")),
+								MockNodes([]TreeNode{
+									MockNodes([]TreeNode{
+										MockNodes([]TreeNode{AdaptTokenToNodeWithMeta(IdentifierToken("x"), &IDMeta{Category: IdCatVar, SymbolInfo: &SymbolInfo{Index: 2}})}, VarNameType, true),
+									}, TermType, false),
+									MockNodes([]TreeNode{AdaptTokenToNode(SymbolToken("+"))}, OpType, true),
+									MockNodes([]TreeNode{AdaptTokenToNode(IntConstToken(1))}, TermType, false),
+								}, ExpressionType, false),
+								AdaptTokenToNode(SymbolToken(";")),
+							}, LetStatementType, true),
+						}, StatementType, true),
+					}, StatementsType, false),
+					AdaptTokenToNode(SymbolToken("}")),
+				}, IfStatementType, true),
+			},
+			want: []string{
+				"label MyClass.MyFunc.5.WHILE.CONT",
+				"push local 2",
+				"push constant 10",
+				"gt",
+				"not",
+				"if-goto MyClass.MyFunc.5.WHILE.END",
+				"push local 2",
+				"push constant 1",
+				"add",
+				"pop local 2",
+				"goto MyClass.MyFunc.5.WHILE.CONT",
+				"label MyClass.MyFunc.5.WHILE.END",
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := &Compiler{
+				curClassName: tt.fields.curClassName,
+				curFuncInfo:  tt.fields.curFuncInfo,
+				whileCounter: tt.fields.whileCounter,
+				vmc:          NewVmCode(),
+			}
+			got, err := c.compileWhileStatement(tt.args.pt)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("Compiler.compileWhileStatement() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if diff := cmp.Diff(got, tt.want); diff != "" {
+				t.Errorf("Compiler.compileWhileStatement() diff (-got +want)\n%s", diff)
 			}
 		})
 	}
