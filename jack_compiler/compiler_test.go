@@ -246,7 +246,7 @@ func TestCompiler_compileIfStatement(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:   "if only",
+			name:   "if and else block",
 			fields: fields{"MyClass", &funcInfo{name: "MyFunc"}, 5},
 			args: args{
 				MockNodes([]TreeNode{
@@ -345,7 +345,7 @@ func TestCompiler_compileWhileStatement(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name:   "if only",
+			name:   "normal",
 			fields: fields{"MyClass", &funcInfo{name: "MyFunc"}, 5},
 			args: args{
 				MockNodes([]TreeNode{
