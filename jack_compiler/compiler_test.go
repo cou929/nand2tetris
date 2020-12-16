@@ -1,7 +1,6 @@
 package main
 
 import (
-	"reflect"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -54,8 +53,8 @@ func TestCompiler_compileSubroutineCall(t *testing.T) {
 				t.Errorf("Compiler.compileSubroutineCall() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("Compiler.compileSubroutineCall() = %v, want %v", got, tt.want)
+			if diff := cmp.Diff(got, tt.want); diff != "" {
+				t.Errorf("Compiler.compileSubroutineCall() diff (-got +want)\n%s", diff)
 			}
 		})
 	}
@@ -132,8 +131,8 @@ func TestCompiler_compileExpression(t *testing.T) {
 				t.Errorf("Compiler.compileExpression() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("Compiler.compileExpression() = %v, want %v", got, tt.want)
+			if diff := cmp.Diff(got, tt.want); diff != "" {
+				t.Errorf("Compiler.compileExpression() diff (-got +want)\n%s", diff)
 			}
 		})
 	}
@@ -179,8 +178,8 @@ func TestCompiler_compileLetStatement(t *testing.T) {
 				t.Errorf("Compiler.compileLetStatement() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("Compiler.compileLetStatement() = %v, want %v", got, tt.want)
+			if diff := cmp.Diff(got, tt.want); diff != "" {
+				t.Errorf("Compiler.compileLetStatement() diff (-got +want)\n%s", diff)
 			}
 		})
 	}
@@ -322,8 +321,8 @@ func TestCompiler_compileIfStatement(t *testing.T) {
 				t.Errorf("Compiler.compileIfStatement() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("Compiler.compileIfStatement() = %v, want %v", got, tt.want)
+			if diff := cmp.Diff(got, tt.want); diff != "" {
+				t.Errorf("Compiler.compileIfStatement() diff (-got +want)\n%s", diff)
 			}
 		})
 	}
