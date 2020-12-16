@@ -363,7 +363,17 @@ func (c *Compiler) traverseExpression(exps []TreeNode) ([]string, error) {
 			}
 			res = append(res, c.vmc.pushConstant(i))
 		case VarNameType:
-			return nil, fmt.Errorf("[compileExpression] Not implemented yet %v", VarNameType)
+			// todo: array case
+			switch child.Meta().Category {
+			case IdCatStatic:
+				res = append(res, c.vmc.push("static", child.Meta().SymbolInfo.Index))
+			case IdCatField:
+				res = append(res, c.vmc.push("this", child.Meta().SymbolInfo.Index))
+			case IdCatArg:
+				res = append(res, c.vmc.push("argument", child.Meta().SymbolInfo.Index))
+			case IdCatVar:
+				res = append(res, c.vmc.push("local", child.Meta().SymbolInfo.Index))
+			}
 		case SubroutineCallType:
 			codes, err := c.compile(child)
 			if err != nil {

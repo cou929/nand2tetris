@@ -105,6 +105,20 @@ func TestCompiler_compileExpression(t *testing.T) {
 			},
 			wantErr: false,
 		},
+		{
+			name: "varName",
+			args: args{
+				MockNodes([]TreeNode{
+					MockNodes([]TreeNode{
+						MockNodes([]TreeNode{AdaptTokenToNodeWithMeta(IdentifierToken("x"), &IDMeta{Category: IdCatVar, SymbolInfo: &SymbolInfo{Index: 2}})}, VarNameType, true),
+					}, TermType, false),
+				}, ExpressionType, true),
+			},
+			want: []string{
+				"push local 2",
+			},
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

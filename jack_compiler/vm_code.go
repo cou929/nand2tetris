@@ -16,6 +16,10 @@ func (v *VmCode) call(class string, fn string, argC int) string {
 	return fmt.Sprintf("call %s.%s %d", class, fn, argC)
 }
 
+func (v *VmCode) push(seg string, idx int) string {
+	return fmt.Sprintf("push %s %d", seg, idx)
+}
+
 func (v *VmCode) pushConstant(in int) string {
 	return fmt.Sprintf("push constant %d", in)
 }
