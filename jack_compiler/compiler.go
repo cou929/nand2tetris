@@ -400,6 +400,17 @@ func (c *Compiler) traverseExpression(exps []TreeNode) ([]string, error) {
 				return nil, fmt.Errorf("[compileExpression] %w", err)
 			}
 			res = append(res, codes...)
+		case KeywordConstantType:
+			switch child.Value() {
+			case "true":
+				res = append(res, c.vmc.true()...)
+			case "false":
+				res = append(res, c.vmc.false())
+			case "null":
+				res = append(res, c.vmc.null())
+			case "this":
+				return nil, fmt.Errorf("[compileExpression] not implemented yet")
+			}
 		default:
 			return nil, fmt.Errorf("[compileExpression] Invalid node %v", term)
 		}

@@ -75,3 +75,15 @@ func (v *VmCode) not() string {
 func (v *VmCode) ret() string {
 	return "return"
 }
+
+func (v *VmCode) true() []string {
+	return []string{v.pushConstant(1), v.neg()}
+}
+
+func (v *VmCode) false() string {
+	return v.pushConstant(0)
+}
+
+func (v *VmCode) null() string {
+	return v.pushConstant(0)
+}
