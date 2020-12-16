@@ -18,7 +18,6 @@ type Compiler struct {
 type funcInfo struct {
 	name          string
 	kind          funcKind
-	returnType    string
 	localVarCount int
 }
 
@@ -140,13 +139,6 @@ func (c *Compiler) setFuncKind(in string) error {
 	return fmt.Errorf("Invalid function kind %s", in)
 }
 
-func (c *Compiler) setFuncReturnType(in string) {
-	if c.curFuncInfo == nil {
-		c.curFuncInfo = &funcInfo{}
-	}
-	c.curFuncInfo.returnType = in
-}
-
 func (c *Compiler) incLocalVarCount() {
 	if c.curFuncInfo == nil {
 		c.curFuncInfo = &funcInfo{}
@@ -218,11 +210,6 @@ func (c *Compiler) compileSubroutineDec(pt TreeNode) ([]string, error) {
 
 		if i == 0 {
 			c.setFuncKind(node.Value())
-			continue
-		}
-
-		if i == 1 {
-			c.setFuncReturnType(node.Value())
 			continue
 		}
 
@@ -422,8 +409,16 @@ func (c *Compiler) compileDoStatement(pt TreeNode) ([]string, error) {
 
 func (c *Compiler) compileReturnStatement(pt TreeNode) ([]string, error) {
 	var res []string
-	if c.curFuncInfo.returnType == "void" {
+	if len(pt.ChildNodes()) == 2 {
+		// return;
 		res = append(res, c.vmc.pushConstant(0))
+	} else {
+		// return expression;
+		exp, err := c.compile(pt.ChildNodes()[1])
+		if err != nil {
+			return nil, fmt.Errorf("[compileReturnStatement] %w", err)
+		}
+		res = append(res, exp...)
 	}
 	res = append(res, c.vmc.ret())
 	return res, nil

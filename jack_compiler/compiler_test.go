@@ -416,3 +416,62 @@ func TestCompiler_compileWhileStatement(t *testing.T) {
 		})
 	}
 }
+
+func TestCompiler_compileReturnStatement(t *testing.T) {
+	type args struct {
+		pt TreeNode
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    []string
+		wantErr bool
+	}{
+		{
+			name: "return with expression",
+			args: args{
+				MockNodes([]TreeNode{
+					AdaptTokenToNode(KeywordToken("return")),
+					MockNodes([]TreeNode{
+						MockNodes([]TreeNode{AdaptTokenToNode(IntConstToken(10))}, TermType, false),
+					}, ExpressionType, false),
+					AdaptTokenToNode(SymbolToken(";")),
+				}, ReturnStatementType, true),
+			},
+			want: []string{
+				"push constant 10",
+				"return",
+			},
+			wantErr: false,
+		},
+		{
+			name: "void return",
+			args: args{
+				MockNodes([]TreeNode{
+					AdaptTokenToNode(KeywordToken("return")),
+					AdaptTokenToNode(SymbolToken(";")),
+				}, ReturnStatementType, true),
+			},
+			want: []string{
+				"push constant 0",
+				"return",
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := &Compiler{
+				vmc: NewVmCode(),
+			}
+			got, err := c.compileReturnStatement(tt.args.pt)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("Compiler.compileReturnStatement() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if diff := cmp.Diff(got, tt.want); diff != "" {
+				t.Errorf("Compiler.compileReturnStatement() diff (-got +want)\n%s", diff)
+			}
+		})
+	}
+}
