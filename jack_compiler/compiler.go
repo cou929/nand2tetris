@@ -7,12 +7,17 @@ import (
 )
 
 type Compiler struct {
-	curClassName    string
+	curClassInfo    *classInfo
 	curFuncInfo     *funcInfo
 	callingArgCount int
 	ifCounter       int
 	whileCounter    int
 	vmc             *VmCode
+}
+
+type classInfo struct {
+	name       string
+	fieldCount int
 }
 
 type funcInfo struct {
@@ -59,6 +64,8 @@ func (c *Compiler) compile(pt TreeNode) ([]string, error) {
 	switch pt.Type() {
 	case ClassType:
 		return c.compileClass(pt)
+	case ClassVarDecType:
+		return c.compileClassVarDec(pt)
 	case TypeType:
 		return c.compileType(pt)
 	case SubroutineDecType:
@@ -106,11 +113,21 @@ func (c *Compiler) resetAllState() {
 }
 
 func (c *Compiler) resetClassState() {
-	c.curClassName = ""
+	c.curClassInfo = nil
 }
 
 func (c *Compiler) setClassName(in string) {
-	c.curClassName = in
+	if c.curClassInfo == nil {
+		c.curClassInfo = &classInfo{}
+	}
+	c.curClassInfo.name = in
+}
+
+func (c *Compiler) incClassFieldCount() {
+	if c.curClassInfo == nil {
+		c.curClassInfo = &classInfo{}
+	}
+	c.curClassInfo.fieldCount++
 }
 
 func (c *Compiler) resetFuncState() {
@@ -129,11 +146,11 @@ func (c *Compiler) setFuncKind(in string) error {
 		c.curFuncInfo = &funcInfo{}
 	}
 	switch in {
-	case "Constructor":
+	case "constructor":
 		c.curFuncInfo.kind = Constructor
-	case "Function":
+	case "function":
 		c.curFuncInfo.kind = Function
-	case "Method":
+	case "method":
 		c.curFuncInfo.kind = Method
 	}
 	return fmt.Errorf("Invalid function kind %s", in)
@@ -196,6 +213,15 @@ func (c *Compiler) compileClass(pt TreeNode) ([]string, error) {
 	return res, nil
 }
 
+func (c *Compiler) compileClassVarDec(pt TreeNode) ([]string, error) {
+	for _, node := range pt.ChildNodes() {
+		if node.Type() == VarNameType && node.Meta().Category == IdCatField {
+			c.incClassFieldCount()
+		}
+	}
+	return nil, nil
+}
+
 func (c *Compiler) compileType(pt TreeNode) ([]string, error) {
 	return nil, nil
 }
@@ -229,8 +255,28 @@ func (c *Compiler) compileSubroutineDec(pt TreeNode) ([]string, error) {
 		res = append(res, codes...)
 	}
 
+	// prepare this segment
+	switch c.curFuncInfo.kind {
+	case Method:
+		// set arg0 (= base address of the instance) to pointer 0 (this)
+		codes := []string{
+			c.vmc.push("argument", 0),
+			c.vmc.pop("pointer", 0),
+		}
+		res = append(codes, res...) // prepend
+	case Constructor:
+		// allocate memory of the object
+		// object size is number of filed the class has
+		codes := []string{
+			c.vmc.pushConstant(c.curClassInfo.fieldCount),
+			c.vmc.call("Memory", "alloc", 1),
+			c.vmc.pop("pointer", 0),
+		}
+		res = append(codes, res...) // prepend
+	}
+
 	// prepend function declaration
-	res = append([]string{c.vmc.function(c.curClassName, c.curFuncInfo.name, c.curFuncInfo.localVarCount)}, res...)
+	res = append([]string{c.vmc.function(c.curClassInfo.name, c.curFuncInfo.name, c.curFuncInfo.localVarCount)}, res...)
 
 	return res, nil
 }
@@ -328,8 +374,8 @@ func (c *Compiler) compileIfStatement(pt TreeNode) ([]string, error) {
 	var res []string
 	suffix := c.ifCounter
 	c.incIfCounter()
-	endLabel := fmt.Sprintf("%s.%s.%d.IF.END", c.curClassName, c.curFuncInfo.name, suffix)
-	elseLabel := fmt.Sprintf("%s.%s.%d.IF.ELSE", c.curClassName, c.curFuncInfo.name, suffix)
+	endLabel := fmt.Sprintf("%s.%s.%d.IF.END", c.curClassInfo.name, c.curFuncInfo.name, suffix)
+	elseLabel := fmt.Sprintf("%s.%s.%d.IF.ELSE", c.curClassInfo.name, c.curFuncInfo.name, suffix)
 
 	// ~(cond)
 	cond, err := c.compile(pt.ChildNodes()[2])
@@ -366,8 +412,8 @@ func (c *Compiler) compileWhileStatement(pt TreeNode) ([]string, error) {
 	var res []string
 	suffix := c.whileCounter
 	c.incWhileCounter()
-	contLabel := fmt.Sprintf("%s.%s.%d.WHILE.CONT", c.curClassName, c.curFuncInfo.name, suffix)
-	endLabel := fmt.Sprintf("%s.%s.%d.WHILE.END", c.curClassName, c.curFuncInfo.name, suffix)
+	contLabel := fmt.Sprintf("%s.%s.%d.WHILE.CONT", c.curClassInfo.name, c.curFuncInfo.name, suffix)
+	endLabel := fmt.Sprintf("%s.%s.%d.WHILE.END", c.curClassInfo.name, c.curFuncInfo.name, suffix)
 
 	res = append(res, c.vmc.label(contLabel))
 
@@ -404,6 +450,8 @@ func (c *Compiler) compileDoStatement(pt TreeNode) ([]string, error) {
 		}
 		res = append(res, codes...)
 	}
+	// discard return value of void function
+	res = append(res, c.vmc.pop("temp", 7)) // todo: what happen if anyone uses temp 7 ?
 	return res, nil
 }
 
@@ -488,7 +536,7 @@ func (c *Compiler) traverseExpression(exps []TreeNode) ([]string, error) {
 			case "null":
 				res = append(res, c.vmc.null())
 			case "this":
-				return nil, fmt.Errorf("[compileExpression] not implemented yet")
+				res = append(res, c.vmc.push("pointer", 0))
 			}
 		default:
 			return nil, fmt.Errorf("[compileExpression] Invalid node %v", term)
@@ -528,16 +576,34 @@ func (c *Compiler) compileSubroutineCall(pt TreeNode) ([]string, error) {
 	var res []string
 	className := ""
 	subName := ""
+	c.resetCallingArgCount()
+
 	for i, node := range pt.ChildNodes() {
 		if i == 0 {
 			switch node.Type() {
 			case SubroutineNameType:
-				className = c.curClassName
+				// calling method of current instance
+				className = c.curClassInfo.name
 				subName = node.Value()
+				// pass current this as argument[0] of callee
+				res = append(res, c.vmc.push("pointer", 0))
+				c.incCallingArgCount()
 			case ClassNameType:
 				className = node.Value()
 			case VarNameType:
-				return nil, fmt.Errorf("not implemented yet")
+				className = node.Meta().SymbolInfo.Type
+				// push base address of the instance as argument[0] of callee
+				switch node.Meta().Category {
+				case IdCatStatic:
+					res = append(res, c.vmc.push("static", node.Meta().SymbolInfo.Index))
+				case IdCatField:
+					res = append(res, c.vmc.push("this", node.Meta().SymbolInfo.Index))
+				case IdCatArg:
+					res = append(res, c.vmc.push("argument", node.Meta().SymbolInfo.Index))
+				case IdCatVar:
+					res = append(res, c.vmc.push("local", node.Meta().SymbolInfo.Index))
+				}
+				c.incCallingArgCount()
 			}
 		}
 
@@ -546,7 +612,6 @@ func (c *Compiler) compileSubroutineCall(pt TreeNode) ([]string, error) {
 		}
 
 		if node.Type() == ExpressionListType {
-			c.resetCallingArgCount()
 			codes, err := c.compile(node)
 			if err != nil {
 				return nil, fmt.Errorf("[compileSubroutineCall] %w", err)

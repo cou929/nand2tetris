@@ -8,9 +8,8 @@ import (
 
 func TestCompiler_compileSubroutineCall(t *testing.T) {
 	type fields struct {
-		curClassName string
+		curClassInfo *classInfo
 		curFuncInfo  *funcInfo
-		vmc          *VmCode
 	}
 	type args struct {
 		pt TreeNode
@@ -24,7 +23,7 @@ func TestCompiler_compileSubroutineCall(t *testing.T) {
 	}{
 		{
 			name:   "function",
-			fields: fields{"FooClass", &funcInfo{name: "BarFunc"}, NewVmCode()},
+			fields: fields{&classInfo{name: "FooClass"}, &funcInfo{name: "BarFunc"}},
 			args: args{
 				MockNodes([]TreeNode{
 					MockNodes([]TreeNode{AdaptTokenToNode(IdentifierToken("MyClass"))}, ClassNameType, true),
@@ -40,13 +39,49 @@ func TestCompiler_compileSubroutineCall(t *testing.T) {
 			},
 			wantErr: false,
 		},
+		{
+			name:   "current instance method call",
+			fields: fields{&classInfo{name: "FooClass"}, &funcInfo{name: "BarFunc"}},
+			args: args{
+				MockNodes([]TreeNode{
+					MockNodes([]TreeNode{AdaptTokenToNode(IdentifierToken("MyMethod"))}, SubroutineNameType, true),
+					AdaptTokenToNode(SymbolToken("(")),
+					MockNodes(nil, ExpressionListType, false),
+					AdaptTokenToNode(SymbolToken(")")),
+				}, SubroutineCallType, true),
+			},
+			want: []string{
+				"push pointer 0",
+				"call FooClass.MyMethod 1",
+			},
+			wantErr: false,
+		},
+		{
+			name:   "method call from var",
+			fields: fields{&classInfo{name: "FooClass"}, &funcInfo{name: "BarFunc"}},
+			args: args{
+				MockNodes([]TreeNode{
+					MockNodes([]TreeNode{AdaptTokenToNodeWithMeta(IdentifierToken("myObj"), &IDMeta{Category: IdCatVar, SymbolInfo: &SymbolInfo{Index: 2, Type: "SomeClass"}})}, VarNameType, true),
+					AdaptTokenToNode(SymbolToken(".")),
+					MockNodes([]TreeNode{AdaptTokenToNode(IdentifierToken("MyMethod"))}, SubroutineNameType, true),
+					AdaptTokenToNode(SymbolToken("(")),
+					MockNodes(nil, ExpressionListType, false),
+					AdaptTokenToNode(SymbolToken(")")),
+				}, SubroutineCallType, true),
+			},
+			want: []string{
+				"push local 2",
+				"call SomeClass.MyMethod 1",
+			},
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := &Compiler{
-				curClassName: tt.fields.curClassName,
+				curClassInfo: tt.fields.curClassInfo,
 				curFuncInfo:  tt.fields.curFuncInfo,
-				vmc:          tt.fields.vmc,
+				vmc:          NewVmCode(),
 			}
 			got, err := c.compileSubroutineCall(tt.args.pt)
 			if (err != nil) != tt.wantErr {
@@ -120,6 +155,20 @@ func TestCompiler_compileExpression(t *testing.T) {
 			},
 			wantErr: false,
 		},
+		{
+			name: "this",
+			args: args{
+				MockNodes([]TreeNode{
+					MockNodes([]TreeNode{
+						MockNodes([]TreeNode{AdaptTokenToNode(KeywordToken("this"))}, KeywordConstantType, true),
+					}, TermType, false),
+				}, ExpressionType, true),
+			},
+			want: []string{
+				"push pointer 0",
+			},
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -187,7 +236,7 @@ func TestCompiler_compileLetStatement(t *testing.T) {
 
 func TestCompiler_compileIfStatement(t *testing.T) {
 	type fields struct {
-		curClassName string
+		curClassInfo *classInfo
 		curFuncInfo  *funcInfo
 		ifCounter    int
 	}
@@ -203,7 +252,7 @@ func TestCompiler_compileIfStatement(t *testing.T) {
 	}{
 		{
 			name:   "if only",
-			fields: fields{"MyClass", &funcInfo{name: "MyFunc"}, 5},
+			fields: fields{&classInfo{name: "MyClass"}, &funcInfo{name: "MyFunc"}, 5},
 			args: args{
 				MockNodes([]TreeNode{
 					AdaptTokenToNode(KeywordToken("if")),
@@ -247,7 +296,7 @@ func TestCompiler_compileIfStatement(t *testing.T) {
 		},
 		{
 			name:   "if and else block",
-			fields: fields{"MyClass", &funcInfo{name: "MyFunc"}, 5},
+			fields: fields{&classInfo{name: "MyClass"}, &funcInfo{name: "MyFunc"}, 5},
 			args: args{
 				MockNodes([]TreeNode{
 					AdaptTokenToNode(KeywordToken("if")),
@@ -309,7 +358,7 @@ func TestCompiler_compileIfStatement(t *testing.T) {
 		},
 		{
 			name:   "nest",
-			fields: fields{"MyClass", &funcInfo{name: "MyFunc"}, 5},
+			fields: fields{&classInfo{name: "MyClass"}, &funcInfo{name: "MyFunc"}, 5},
 			args: args{
 				MockNodes([]TreeNode{
 					AdaptTokenToNode(KeywordToken("if")),
@@ -381,7 +430,7 @@ func TestCompiler_compileIfStatement(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := &Compiler{
-				curClassName: tt.fields.curClassName,
+				curClassInfo: tt.fields.curClassInfo,
 				curFuncInfo:  tt.fields.curFuncInfo,
 				ifCounter:    tt.fields.ifCounter,
 				vmc:          NewVmCode(),
@@ -400,7 +449,7 @@ func TestCompiler_compileIfStatement(t *testing.T) {
 
 func TestCompiler_compileWhileStatement(t *testing.T) {
 	type fields struct {
-		curClassName string
+		curClassInfo *classInfo
 		curFuncInfo  *funcInfo
 		whileCounter int
 	}
@@ -416,7 +465,7 @@ func TestCompiler_compileWhileStatement(t *testing.T) {
 	}{
 		{
 			name:   "normal",
-			fields: fields{"MyClass", &funcInfo{name: "MyFunc"}, 5},
+			fields: fields{&classInfo{name: "MyClass"}, &funcInfo{name: "MyFunc"}, 5},
 			args: args{
 				MockNodes([]TreeNode{
 					AdaptTokenToNode(KeywordToken("while")),
@@ -468,7 +517,7 @@ func TestCompiler_compileWhileStatement(t *testing.T) {
 		},
 		{
 			name:   "nest",
-			fields: fields{"MyClass", &funcInfo{name: "MyFunc"}, 5},
+			fields: fields{&classInfo{name: "MyClass"}, &funcInfo{name: "MyFunc"}, 5},
 			args: args{
 				MockNodes([]TreeNode{
 					AdaptTokenToNode(KeywordToken("while")),
@@ -569,7 +618,7 @@ func TestCompiler_compileWhileStatement(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := &Compiler{
-				curClassName: tt.fields.curClassName,
+				curClassInfo: tt.fields.curClassInfo,
 				curFuncInfo:  tt.fields.curFuncInfo,
 				whileCounter: tt.fields.whileCounter,
 				vmc:          NewVmCode(),
@@ -640,6 +689,157 @@ func TestCompiler_compileReturnStatement(t *testing.T) {
 			}
 			if diff := cmp.Diff(got, tt.want); diff != "" {
 				t.Errorf("Compiler.compileReturnStatement() diff (-got +want)\n%s", diff)
+			}
+		})
+	}
+}
+
+func TestCompiler_compileSubroutineDec(t *testing.T) {
+	type fields struct {
+		curClassInfo *classInfo
+	}
+	type args struct {
+		pt TreeNode
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		want    []string
+		wantErr bool
+	}{
+		{
+			name: "constructor",
+			fields: fields{
+				curClassInfo: &classInfo{name: "MyClass", fieldCount: 3},
+			},
+			args: args{
+				MockNodes([]TreeNode{
+					AdaptTokenToNode(KeywordToken("constructor")),
+					MockNodes([]TreeNode{AdaptTokenToNode(IdentifierToken("MyClass"))}, TypeType, true),
+					MockNodes([]TreeNode{AdaptTokenToNode(IdentifierToken("new"))}, SubroutineNameType, true),
+					AdaptTokenToNode(SymbolToken("(")),
+					MockNodes([]TreeNode{}, ParameterListType, false),
+					AdaptTokenToNode(SymbolToken(")")),
+					MockNodes([]TreeNode{
+						AdaptTokenToNode(SymbolToken("{")),
+						MockNodes([]TreeNode{
+							MockNodes([]TreeNode{
+								MockNodes([]TreeNode{
+									AdaptTokenToNode(KeywordToken("return")),
+									MockNodes([]TreeNode{
+										MockNodes([]TreeNode{
+											MockNodes([]TreeNode{AdaptTokenToNode(KeywordToken("this"))}, KeywordConstantType, true),
+										}, TermType, false),
+									}, ExpressionType, true),
+									AdaptTokenToNode(SymbolToken(";")),
+								}, ReturnStatementType, false),
+							}, StatementType, true),
+						}, StatementsType, false),
+						AdaptTokenToNode(SymbolToken("}")),
+					}, SubroutineBodyType, false),
+				}, SubroutineDecType, false),
+			},
+			want: []string{
+				"function MyClass.new 0",
+				"push constant 3",
+				"call Memory.alloc 1",
+				"pop pointer 0",
+				"push pointer 0",
+				"return",
+			},
+			wantErr: false,
+		},
+		{
+			name: "function",
+			fields: fields{
+				curClassInfo: &classInfo{name: "MyClass", fieldCount: 3},
+			},
+			args: args{
+				MockNodes([]TreeNode{
+					AdaptTokenToNode(KeywordToken("function")),
+					MockNodes([]TreeNode{AdaptTokenToNode(KeywordToken("void"))}, TypeType, true),
+					MockNodes([]TreeNode{AdaptTokenToNode(IdentifierToken("MyFunc"))}, SubroutineNameType, true),
+					AdaptTokenToNode(SymbolToken("(")),
+					MockNodes([]TreeNode{}, ParameterListType, false),
+					AdaptTokenToNode(SymbolToken(")")),
+					MockNodes([]TreeNode{
+						AdaptTokenToNode(SymbolToken("{")),
+						MockNodes([]TreeNode{
+							AdaptTokenToNode(KeywordToken("var")),
+							MockNodes([]TreeNode{AdaptTokenToNode(KeywordToken("boolean"))}, TypeType, true),
+							MockNodes([]TreeNode{AdaptTokenToNodeWithMeta(IdentifierToken("x"), &IDMeta{Category: IdCatVar, SymbolInfo: &SymbolInfo{Index: 2}})}, VarNameType, true),
+							AdaptTokenToNode(SymbolToken(";")),
+						}, VarDecType, false),
+						MockNodes([]TreeNode{
+							MockNodes([]TreeNode{
+								MockNodes([]TreeNode{
+									AdaptTokenToNode(KeywordToken("return")),
+									AdaptTokenToNode(SymbolToken(";")),
+								}, ReturnStatementType, false),
+							}, StatementType, true),
+						}, StatementsType, false),
+						AdaptTokenToNode(SymbolToken("}")),
+					}, SubroutineBodyType, false),
+				}, SubroutineDecType, false),
+			},
+			want: []string{
+				"function MyClass.MyFunc 1",
+				"push constant 0",
+				"return",
+			},
+			wantErr: false,
+		},
+		{
+			name: "method",
+			fields: fields{
+				curClassInfo: &classInfo{name: "MyClass", fieldCount: 3},
+			},
+			args: args{
+				MockNodes([]TreeNode{
+					AdaptTokenToNode(KeywordToken("method")),
+					MockNodes([]TreeNode{AdaptTokenToNode(KeywordToken("void"))}, TypeType, true),
+					MockNodes([]TreeNode{AdaptTokenToNode(IdentifierToken("myFunc"))}, SubroutineNameType, true),
+					AdaptTokenToNode(SymbolToken("(")),
+					MockNodes([]TreeNode{}, ParameterListType, false),
+					AdaptTokenToNode(SymbolToken(")")),
+					MockNodes([]TreeNode{
+						AdaptTokenToNode(SymbolToken("{")),
+						MockNodes([]TreeNode{
+							MockNodes([]TreeNode{
+								MockNodes([]TreeNode{
+									AdaptTokenToNode(KeywordToken("return")),
+									AdaptTokenToNode(SymbolToken(";")),
+								}, ReturnStatementType, false),
+							}, StatementType, true),
+						}, StatementsType, false),
+						AdaptTokenToNode(SymbolToken("}")),
+					}, SubroutineBodyType, false),
+				}, SubroutineDecType, false),
+			},
+			want: []string{
+				"function MyClass.myFunc 0",
+				"push argument 0",
+				"pop pointer 0",
+				"push constant 0",
+				"return",
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := &Compiler{
+				curClassInfo: tt.fields.curClassInfo,
+				vmc:          NewVmCode(),
+			}
+			got, err := c.compileSubroutineDec(tt.args.pt)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("Compiler.compileSubroutineDec() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if diff := cmp.Diff(got, tt.want); diff != "" {
+				t.Errorf("Compiler.compileSubroutineDec() diff (-got +want)\n%s", diff)
 			}
 		})
 	}
