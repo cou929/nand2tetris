@@ -352,7 +352,11 @@ func (c *Compiler) compileLetStatement(pt TreeNode) ([]string, error) {
 		case IdCatField:
 			res = append(res, c.vmc.push("this", varName.Meta().SymbolInfo.Index))
 		case IdCatArg:
-			res = append(res, c.vmc.push("argument", varName.Meta().SymbolInfo.Index))
+			idx := varName.Meta().SymbolInfo.Index
+			if c.curFuncInfo.kind == Method {
+				idx++
+			}
+			res = append(res, c.vmc.push("argument", idx))
 		case IdCatVar:
 			res = append(res, c.vmc.push("local", varName.Meta().SymbolInfo.Index))
 		}
@@ -389,7 +393,11 @@ func (c *Compiler) compileLetStatement(pt TreeNode) ([]string, error) {
 	case IdCatField:
 		res = append(res, c.vmc.pop("this", varName.Meta().SymbolInfo.Index))
 	case IdCatArg:
-		res = append(res, c.vmc.pop("argument", varName.Meta().SymbolInfo.Index))
+		idx := varName.Meta().SymbolInfo.Index
+		if c.curFuncInfo.kind == Method {
+			idx++
+		}
+		res = append(res, c.vmc.pop("argument", idx))
 	case IdCatVar:
 		res = append(res, c.vmc.pop("local", varName.Meta().SymbolInfo.Index))
 	}
@@ -523,7 +531,11 @@ func (c *Compiler) traverseExpression(exps []TreeNode) ([]string, error) {
 			case IdCatField:
 				res = append(res, c.vmc.push("this", child.Meta().SymbolInfo.Index))
 			case IdCatArg:
-				res = append(res, c.vmc.push("argument", child.Meta().SymbolInfo.Index))
+				idx := child.Meta().SymbolInfo.Index
+				if c.curFuncInfo.kind == Method {
+					idx++
+				}
+				res = append(res, c.vmc.push("argument", idx))
 			case IdCatVar:
 				res = append(res, c.vmc.push("local", child.Meta().SymbolInfo.Index))
 			}
@@ -639,7 +651,11 @@ func (c *Compiler) compileSubroutineCall(pt TreeNode) ([]string, error) {
 				case IdCatField:
 					res = append(res, c.vmc.push("this", node.Meta().SymbolInfo.Index))
 				case IdCatArg:
-					res = append(res, c.vmc.push("argument", node.Meta().SymbolInfo.Index))
+					idx := node.Meta().SymbolInfo.Index
+					if c.curFuncInfo.kind == Method {
+						idx++
+					}
+					res = append(res, c.vmc.push("argument", idx))
 				case IdCatVar:
 					res = append(res, c.vmc.push("local", node.Meta().SymbolInfo.Index))
 				}
