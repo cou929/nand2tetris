@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"regexp"
+	"strconv"
 	"strings"
 )
 
@@ -24,56 +25,18 @@ func (t *Tokens) Xml() string {
 type Token interface {
 	Type() NodeType
 	Xml() string
+	String() string
+	Name() string
 }
 
 type KeywordToken string
 
 func NewKeywordToken(in string) (KeywordToken, bool) {
 	switch in {
-	case "class":
-		fallthrough
-	case "constructor":
-		fallthrough
-	case "function":
-		fallthrough
-	case "method":
-		fallthrough
-	case "field":
-		fallthrough
-	case "static":
-		fallthrough
-	case "var":
-		fallthrough
-	case "int":
-		fallthrough
-	case "char":
-		fallthrough
-	case "boolean":
-		fallthrough
-	case "void":
-		fallthrough
-	case "true":
-		fallthrough
-	case "false":
-		fallthrough
-	case "null":
-		fallthrough
-	case "this":
-		fallthrough
-	case "let":
-		fallthrough
-	case "do":
-		fallthrough
-	case "if":
-		fallthrough
-	case "else":
-		fallthrough
-	case "while":
-		fallthrough
-	case "return":
+	case "class", "constructor", "function", "method", "field", "static", "var", "int", "char", "boolean",
+		"void", "true", "false", "null", "this", "let", "do", "if", "else", "while", "return":
 		return KeywordToken(in), true
 	}
-
 	return "", false
 }
 
@@ -85,54 +48,25 @@ func (t KeywordToken) String() string {
 	return string(t)
 }
 
+func (t KeywordToken) Int() int {
+	return 0
+}
+
 func (t KeywordToken) Xml() string {
-	return fmt.Sprintf("<keyword>%s</keyword>", escapeXml(t.String()))
+	return fmt.Sprintf("<%s>%s</%s>", t.Name(), escapeXml(t.String()), t.Name())
+}
+
+func (t KeywordToken) Name() string {
+	return "keyword"
 }
 
 type SymbolToken string
 
 func NewSymbolToken(in string) (SymbolToken, bool) {
 	switch in {
-	case "{":
-		fallthrough
-	case "}":
-		fallthrough
-	case "(":
-		fallthrough
-	case ")":
-		fallthrough
-	case "[":
-		fallthrough
-	case "]":
-		fallthrough
-	case ".":
-		fallthrough
-	case ",":
-		fallthrough
-	case ";":
-		fallthrough
-	case "+":
-		fallthrough
-	case "-":
-		fallthrough
-	case "*":
-		fallthrough
-	case "/":
-		fallthrough
-	case "&":
-		fallthrough
-	case "|":
-		fallthrough
-	case "<":
-		fallthrough
-	case ">":
-		fallthrough
-	case "=":
-		fallthrough
-	case "~":
+	case "{", "}", "(", ")", "[", "]", ".", ",", ";", "+", "-", "*", "/", "&", "|", "<", ">", "=", "~":
 		return SymbolToken(in), true
 	}
-
 	return "", false
 }
 
@@ -144,8 +78,16 @@ func (t SymbolToken) String() string {
 	return string(t)
 }
 
+func (t SymbolToken) Int() int {
+	return 0
+}
+
 func (t SymbolToken) Xml() string {
-	return fmt.Sprintf("<symbol>%s</symbol>", escapeXml(t.String()))
+	return fmt.Sprintf("<%s>%s</%s>", t.Name(), escapeXml(t.String()), t.Name())
+}
+
+func (t SymbolToken) Name() string {
+	return "symbol"
 }
 
 type IntConstToken int
@@ -161,12 +103,20 @@ func (t IntConstToken) Type() NodeType {
 	return IntConstType
 }
 
+func (t IntConstToken) String() string {
+	return strconv.Itoa(int(t))
+}
+
 func (t IntConstToken) Int() int {
 	return int(t)
 }
 
 func (t IntConstToken) Xml() string {
-	return fmt.Sprintf("<integerConstant>%d</integerConstant>", t.Int())
+	return fmt.Sprintf("<%s>%d</%s>", t.Name(), t.Int(), t.Name())
+}
+
+func (t IntConstToken) Name() string {
+	return "integerConstant"
 }
 
 type StrConstToken string
@@ -187,8 +137,16 @@ func (t StrConstToken) String() string {
 	return string(t)
 }
 
+func (t StrConstToken) Int() int {
+	return 0
+}
+
 func (t StrConstToken) Xml() string {
-	return fmt.Sprintf("<stringConstant>%s</stringConstant>", escapeXml(t.String()))
+	return fmt.Sprintf("<%s>%s</%s>", t.Name(), escapeXml(t.String()), t.Name())
+}
+
+func (t StrConstToken) Name() string {
+	return "stringConstant"
 }
 
 type IdentifierToken string
@@ -209,8 +167,16 @@ func (t IdentifierToken) String() string {
 	return string(t)
 }
 
+func (t IdentifierToken) Int() int {
+	return 0
+}
+
 func (t IdentifierToken) Xml() string {
-	return fmt.Sprintf("<identifier>%s</identifier>", escapeXml(t.String()))
+	return fmt.Sprintf("<%s>%s</%s>", t.Name(), escapeXml(t.String()), t.Name())
+}
+
+func (t IdentifierToken) Name() string {
+	return "identifier"
 }
 
 func escapeXml(in string) string {

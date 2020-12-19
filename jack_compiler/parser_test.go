@@ -5,23 +5,38 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 )
 
-func MockNodes(tokens []Token, typ NodeType, terminal bool) TreeNode {
-	xml := ""
-	if !terminal {
-		s := typ.String()
-		s = strings.Replace(s, "Type", "", -1)
-		r := []rune(s)
-		head := strings.ToLower(string(r[0]))
-		rest := string(r[1:len(r)])
-		xml = head + rest
+func MockNodes(nodes []TreeNode, typ NodeType, terminal bool) TreeNode {
+	s := typ.String()
+	s = s[0:strings.LastIndex(s, "Type")]
+	r := []rune(s)
+	head := strings.ToLower(string(r[0]))
+	rest := string(r[1:len(r)])
+	name := head + rest
+	switch typ {
+	case TypeType, ClassNameType, SubroutineNameType, VarNameType, OpType, UnaryOpType, KeywordConstantType:
+		return &OneChildNode{
+			Children:  nodes,
+			Typ:       typ,
+			N:         name,
+			XMLMarkup: !terminal,
+		}
 	}
-	return &GeneralNode{
-		Children:  tokens,
+	return &InnerNode{
+		Children:  nodes,
 		Typ:       typ,
-		XMLHeader: xml,
+		N:         name,
+		XMLMarkup: !terminal,
 	}
+}
+
+func AdaptTokenToNodeWithMeta(token Token, meta *IDMeta) TreeNode {
+	node := NewLeafNode(token.Type(), token.Name(), true)
+	node.SetValue(token.String())
+	node.IDMeta = meta
+	return node
 }
 
 func TestParser_parseKeywordConstant(t *testing.T) {
@@ -41,7 +56,7 @@ func TestParser_parseKeywordConstant(t *testing.T) {
 				KeywordToken("true"),
 				SymbolToken(";"),
 			}},
-			want: MockNodes([]Token{KeywordToken("true")}, KeyConstType, true),
+			want: MockNodes([]TreeNode{AdaptTokenToNode(KeywordToken("true"))}, KeywordConstantType, true),
 			want1: []Token{
 				SymbolToken(";"),
 			},
@@ -50,13 +65,14 @@ func TestParser_parseKeywordConstant(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			p := &Parser{}
+			p := NewParser()
 			got, got1, err := p.parseKeywordConstant(tt.args.tokens)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Parser.parseKeywordConstant() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if diff := cmp.Diff(got, tt.want); diff != "" {
+			opt := cmpopts.IgnoreFields(LeafNode{}, "IDMeta")
+			if diff := cmp.Diff(got, tt.want, opt); diff != "" {
 				t.Errorf("Parser.parseKeywordConstant() diff (-got +want)\n%s", diff)
 			}
 			if diff := cmp.Diff(got1, tt.want1); diff != "" {
@@ -85,7 +101,7 @@ func TestParser_parseUnaryOp(t *testing.T) {
 				IdentifierToken("i"),
 				SymbolToken(";"),
 			}},
-			want: MockNodes([]Token{SymbolToken("-")}, UnaryOpType, true),
+			want: MockNodes([]TreeNode{AdaptTokenToNode(SymbolToken("-"))}, UnaryOpType, true),
 			want1: []Token{
 				IdentifierToken("i"),
 				SymbolToken(";"),
@@ -95,13 +111,14 @@ func TestParser_parseUnaryOp(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			p := &Parser{}
+			p := NewParser()
 			got, got1, err := p.parseUnaryOp(tt.args.tokens)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Parser.parseUnaryOp() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if diff := cmp.Diff(got, tt.want); diff != "" {
+			opt := cmpopts.IgnoreFields(LeafNode{}, "IDMeta")
+			if diff := cmp.Diff(got, tt.want, opt); diff != "" {
 				t.Errorf("Parser.parseUnaryOp() diff (-got +want)\n%s", diff)
 			}
 			if diff := cmp.Diff(got1, tt.want1); diff != "" {
@@ -130,7 +147,7 @@ func TestParser_parseOp(t *testing.T) {
 				IdentifierToken("123"),
 				SymbolToken(";"),
 			}},
-			want: MockNodes([]Token{SymbolToken("+")}, OpType, true),
+			want: MockNodes([]TreeNode{AdaptTokenToNode(SymbolToken("+"))}, OpType, true),
 			want1: []Token{
 				IdentifierToken("123"),
 				SymbolToken(";"),
@@ -140,13 +157,14 @@ func TestParser_parseOp(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			p := &Parser{}
+			p := NewParser()
 			got, got1, err := p.parseOp(tt.args.tokens)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Parser.parseOp() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if diff := cmp.Diff(got, tt.want); diff != "" {
+			opt := cmpopts.IgnoreFields(LeafNode{}, "IDMeta")
+			if diff := cmp.Diff(got, tt.want, opt); diff != "" {
 				t.Errorf("Parser.parseOp() diff (-got +want)\n%s", diff)
 			}
 			if diff := cmp.Diff(got1, tt.want1); diff != "" {
@@ -175,7 +193,7 @@ func TestParser_parseTerm(t *testing.T) {
 				SymbolToken("+"),
 				IntConstToken(456),
 			}},
-			want: MockNodes([]Token{IntConstToken(123)}, TermType, false),
+			want: MockNodes([]TreeNode{AdaptTokenToNode(IntConstToken(123))}, TermType, false),
 			want1: []Token{
 				SymbolToken("+"),
 				IntConstToken(456),
@@ -188,7 +206,7 @@ func TestParser_parseTerm(t *testing.T) {
 				StrConstToken("string"),
 				SymbolToken(";"),
 			}},
-			want: MockNodes([]Token{StrConstToken("string")}, TermType, false),
+			want: MockNodes([]TreeNode{AdaptTokenToNode(StrConstToken("string"))}, TermType, false),
 			want1: []Token{
 				SymbolToken(";"),
 			},
@@ -200,7 +218,7 @@ func TestParser_parseTerm(t *testing.T) {
 				KeywordToken("true"),
 				SymbolToken(";"),
 			}},
-			want: MockNodes([]Token{MockNodes([]Token{KeywordToken("true")}, KeyConstType, true)}, TermType, false),
+			want: MockNodes([]TreeNode{MockNodes([]TreeNode{AdaptTokenToNode(KeywordToken("true"))}, KeywordConstantType, true)}, TermType, false),
 			want1: []Token{
 				SymbolToken(";"),
 			},
@@ -212,7 +230,7 @@ func TestParser_parseTerm(t *testing.T) {
 				IdentifierToken("args"),
 				SymbolToken(";"),
 			}},
-			want: MockNodes([]Token{MockNodes([]Token{IdentifierToken("args")}, VarNameType, true)}, TermType, false),
+			want: MockNodes([]TreeNode{MockNodes([]TreeNode{AdaptTokenToNode(IdentifierToken("args"))}, VarNameType, true)}, TermType, false),
 			want1: []Token{
 				SymbolToken(";"),
 			},
@@ -228,15 +246,15 @@ func TestParser_parseTerm(t *testing.T) {
 				SymbolToken(";"),
 			}},
 			want: MockNodes(
-				[]Token{
-					MockNodes([]Token{IdentifierToken("args")}, VarNameType, true),
-					SymbolToken("["),
-					MockNodes([]Token{
-						MockNodes([]Token{
-							MockNodes([]Token{IdentifierToken("i")}, VarNameType, true),
+				[]TreeNode{
+					MockNodes([]TreeNode{AdaptTokenToNode(IdentifierToken("args"))}, VarNameType, true),
+					AdaptTokenToNode(SymbolToken("[")),
+					MockNodes([]TreeNode{
+						MockNodes([]TreeNode{
+							MockNodes([]TreeNode{AdaptTokenToNode(IdentifierToken("i"))}, VarNameType, true),
 						}, TermType, false),
 					}, ExpressionType, false),
-					SymbolToken("]"),
+					AdaptTokenToNode(SymbolToken("]")),
 				},
 				TermType, false),
 			want1: []Token{
@@ -253,18 +271,18 @@ func TestParser_parseTerm(t *testing.T) {
 				SymbolToken(")"),
 				SymbolToken(";"),
 			}},
-			want: MockNodes([]Token{
-				MockNodes([]Token{
-					MockNodes([]Token{IdentifierToken("fooFunc")}, SubroutineNameType, true),
-					SymbolToken("("),
-					MockNodes([]Token{
-						MockNodes([]Token{
-							MockNodes([]Token{
-								MockNodes([]Token{IdentifierToken("x")}, VarNameType, true),
+			want: MockNodes([]TreeNode{
+				MockNodes([]TreeNode{
+					MockNodes([]TreeNode{AdaptTokenToNode(IdentifierToken("fooFunc"))}, SubroutineNameType, true),
+					AdaptTokenToNode(SymbolToken("(")),
+					MockNodes([]TreeNode{
+						MockNodes([]TreeNode{
+							MockNodes([]TreeNode{
+								MockNodes([]TreeNode{AdaptTokenToNode(IdentifierToken("x"))}, VarNameType, true),
 							}, TermType, false),
 						}, ExpressionType, false),
 					}, ExpressionListType, false),
-					SymbolToken(")"),
+					AdaptTokenToNode(SymbolToken(")")),
 				}, SubroutineCallType, true),
 			}, TermType, false),
 			want1: []Token{
@@ -280,14 +298,14 @@ func TestParser_parseTerm(t *testing.T) {
 				SymbolToken(")"),
 				SymbolToken(";"),
 			}},
-			want: MockNodes([]Token{
-				SymbolToken("("),
-				MockNodes([]Token{
-					MockNodes([]Token{
-						MockNodes([]Token{IdentifierToken("ok")}, VarNameType, true),
+			want: MockNodes([]TreeNode{
+				AdaptTokenToNode(SymbolToken("(")),
+				MockNodes([]TreeNode{
+					MockNodes([]TreeNode{
+						MockNodes([]TreeNode{AdaptTokenToNode(IdentifierToken("ok"))}, VarNameType, true),
 					}, TermType, false),
 				}, ExpressionType, false),
-				SymbolToken(")"),
+				AdaptTokenToNode(SymbolToken(")")),
 			}, TermType, false),
 			want1: []Token{
 				SymbolToken(";"),
@@ -301,10 +319,10 @@ func TestParser_parseTerm(t *testing.T) {
 				IdentifierToken("some"),
 				SymbolToken(";"),
 			}},
-			want: MockNodes([]Token{
-				MockNodes([]Token{SymbolToken("~")}, UnaryOpType, true),
-				MockNodes([]Token{
-					MockNodes([]Token{IdentifierToken("some")}, VarNameType, true),
+			want: MockNodes([]TreeNode{
+				MockNodes([]TreeNode{AdaptTokenToNode(SymbolToken("~"))}, UnaryOpType, true),
+				MockNodes([]TreeNode{
+					MockNodes([]TreeNode{AdaptTokenToNode(IdentifierToken("some"))}, VarNameType, true),
 				}, TermType, false),
 			}, TermType, false),
 			want1: []Token{
@@ -317,20 +335,21 @@ func TestParser_parseTerm(t *testing.T) {
 			args: args{[]Token{
 				SymbolToken(")"),
 			}},
-			want:    nil,
+			want:    (*InnerNode)(nil),
 			want1:   nil,
 			wantErr: true,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			p := &Parser{}
+			p := NewParser()
 			got, got1, err := p.parseTerm(tt.args.tokens)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Parser.parseTerm() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if diff := cmp.Diff(got, tt.want); diff != "" {
+			opt := cmpopts.IgnoreFields(LeafNode{}, "IDMeta")
+			if diff := cmp.Diff(got, tt.want, opt); diff != "" {
 				t.Errorf("Parser.parseTerm() diff (-got +want)\n%s", diff)
 			}
 			if diff := cmp.Diff(got1, tt.want1); diff != "" {
@@ -358,7 +377,7 @@ func TestParser_parseVarName(t *testing.T) {
 				IdentifierToken("args"),
 				SymbolToken(";"),
 			}},
-			want: MockNodes([]Token{IdentifierToken("args")}, VarNameType, true),
+			want: MockNodes([]TreeNode{AdaptTokenToNode(IdentifierToken("args"))}, VarNameType, true),
 			want1: []Token{
 				SymbolToken(";"),
 			},
@@ -367,13 +386,14 @@ func TestParser_parseVarName(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			p := &Parser{}
+			p := NewParser()
 			got, got1, err := p.parseVarName(tt.args.tokens)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Parser.parseVarName() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if diff := cmp.Diff(got, tt.want); diff != "" {
+			opt := cmpopts.IgnoreFields(LeafNode{}, "IDMeta")
+			if diff := cmp.Diff(got, tt.want, opt); diff != "" {
 				t.Errorf("Parser.parseVarName() diff (-got +want)\n%s", diff)
 			}
 			if diff := cmp.Diff(got1, tt.want1); diff != "" {
@@ -401,10 +421,10 @@ func TestParser_parseExpression(t *testing.T) {
 				IdentifierToken("x"),
 				SymbolToken("]"),
 			}},
-			want: MockNodes([]Token{
-				MockNodes([]Token{
-					MockNodes([]Token{
-						IdentifierToken("x"),
+			want: MockNodes([]TreeNode{
+				MockNodes([]TreeNode{
+					MockNodes([]TreeNode{
+						AdaptTokenToNode(IdentifierToken("x")),
 					}, VarNameType, true),
 				}, TermType, false),
 			}, ExpressionType, false),
@@ -421,14 +441,40 @@ func TestParser_parseExpression(t *testing.T) {
 				IdentifierToken("y"),
 				SymbolToken(";"),
 			}},
-			want: MockNodes([]Token{
-				MockNodes([]Token{
-					MockNodes([]Token{IdentifierToken("x")}, VarNameType, true),
+			want: MockNodes([]TreeNode{
+				MockNodes([]TreeNode{
+					MockNodes([]TreeNode{AdaptTokenToNode(IdentifierToken("x"))}, VarNameType, true),
 				}, TermType, false),
-				MockNodes([]Token{SymbolToken("|")}, OpType, true),
-				MockNodes([]Token{
-					MockNodes([]Token{IdentifierToken("y")}, VarNameType, true),
+				MockNodes([]TreeNode{AdaptTokenToNode(SymbolToken("|"))}, OpType, true),
+				MockNodes([]TreeNode{
+					MockNodes([]TreeNode{AdaptTokenToNode(IdentifierToken("y"))}, VarNameType, true),
 				}, TermType, false),
+			}, ExpressionType, false),
+			want1: []Token{
+				SymbolToken(";"),
+			},
+			wantErr: false,
+		},
+		{
+			name: "multiple op",
+			args: args{[]Token{
+				IdentifierToken("x"),
+				SymbolToken("+"),
+				IdentifierToken("y"),
+				SymbolToken("+"),
+				IntConstToken(10),
+				SymbolToken(";"),
+			}},
+			want: MockNodes([]TreeNode{
+				MockNodes([]TreeNode{
+					MockNodes([]TreeNode{AdaptTokenToNode(IdentifierToken("x"))}, VarNameType, true),
+				}, TermType, false),
+				MockNodes([]TreeNode{AdaptTokenToNode(SymbolToken("+"))}, OpType, true),
+				MockNodes([]TreeNode{
+					MockNodes([]TreeNode{AdaptTokenToNode(IdentifierToken("y"))}, VarNameType, true),
+				}, TermType, false),
+				MockNodes([]TreeNode{AdaptTokenToNode(SymbolToken("+"))}, OpType, true),
+				MockNodes([]TreeNode{AdaptTokenToNode(IntConstToken(10))}, TermType, false),
 			}, ExpressionType, false),
 			want1: []Token{
 				SymbolToken(";"),
@@ -438,13 +484,14 @@ func TestParser_parseExpression(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			p := &Parser{}
+			p := NewParser()
 			got, got1, err := p.parseExpression(tt.args.tokens)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Parser.parseExpression() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if diff := cmp.Diff(got, tt.want); diff != "" {
+			opt := cmpopts.IgnoreFields(LeafNode{}, "IDMeta")
+			if diff := cmp.Diff(got, tt.want, opt); diff != "" {
 				t.Errorf("Parser.parseExpression() diff (-got +want)\n%s", diff)
 			}
 			if diff := cmp.Diff(got1, tt.want1); diff != "" {
@@ -471,7 +518,7 @@ func TestParser_parseExpressionList(t *testing.T) {
 			args: args{[]Token{
 				SymbolToken(")"),
 			}},
-			want: MockNodes([]Token(nil), ExpressionListType, false),
+			want: MockNodes([]TreeNode(nil), ExpressionListType, false),
 			want1: []Token{
 				SymbolToken(")"),
 			},
@@ -483,10 +530,10 @@ func TestParser_parseExpressionList(t *testing.T) {
 				IdentifierToken("x"),
 				SymbolToken(")"),
 			}},
-			want: MockNodes([]Token{
-				MockNodes([]Token{
-					MockNodes([]Token{
-						MockNodes([]Token{IdentifierToken("x")}, VarNameType, true),
+			want: MockNodes([]TreeNode{
+				MockNodes([]TreeNode{
+					MockNodes([]TreeNode{
+						MockNodes([]TreeNode{AdaptTokenToNode(IdentifierToken("x"))}, VarNameType, true),
 					}, TermType, false),
 				}, ExpressionType, false),
 			}, ExpressionListType, false),
@@ -503,16 +550,16 @@ func TestParser_parseExpressionList(t *testing.T) {
 				IdentifierToken("y"),
 				SymbolToken(")"),
 			}},
-			want: MockNodes([]Token{
-				MockNodes([]Token{
-					MockNodes([]Token{
-						MockNodes([]Token{IdentifierToken("x")}, VarNameType, true),
+			want: MockNodes([]TreeNode{
+				MockNodes([]TreeNode{
+					MockNodes([]TreeNode{
+						MockNodes([]TreeNode{AdaptTokenToNode(IdentifierToken("x"))}, VarNameType, true),
 					}, TermType, false),
 				}, ExpressionType, false),
-				SymbolToken(","),
-				MockNodes([]Token{
-					MockNodes([]Token{
-						MockNodes([]Token{IdentifierToken("y")}, VarNameType, true),
+				AdaptTokenToNode(SymbolToken(",")),
+				MockNodes([]TreeNode{
+					MockNodes([]TreeNode{
+						MockNodes([]TreeNode{AdaptTokenToNode(IdentifierToken("y"))}, VarNameType, true),
 					}, TermType, false),
 				}, ExpressionType, false),
 			}, ExpressionListType, false),
@@ -524,13 +571,14 @@ func TestParser_parseExpressionList(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			p := &Parser{}
+			p := NewParser()
 			got, got1, err := p.parseExpressionList(tt.args.tokens)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Parser.parseExpressionList() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if diff := cmp.Diff(got, tt.want); diff != "" {
+			opt := cmpopts.IgnoreFields(LeafNode{}, "IDMeta")
+			if diff := cmp.Diff(got, tt.want, opt); diff != "" {
 				t.Errorf("Parser.parseExpressionList() diff (-got +want)\n%s", diff)
 			}
 			if diff := cmp.Diff(got1, tt.want1); diff != "" {
@@ -558,8 +606,8 @@ func TestParser_parseSubroutineName(t *testing.T) {
 				IdentifierToken("myFunc"),
 				SymbolToken("("),
 			}},
-			want: MockNodes([]Token{
-				IdentifierToken("myFunc"),
+			want: MockNodes([]TreeNode{
+				AdaptTokenToNode(IdentifierToken("myFunc")),
 			}, SubroutineNameType, true),
 			want1: []Token{
 				SymbolToken("("),
@@ -569,13 +617,14 @@ func TestParser_parseSubroutineName(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			p := &Parser{}
+			p := NewParser()
 			got, got1, err := p.parseSubroutineName(tt.args.tokens)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Parser.parseSubroutineName() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if diff := cmp.Diff(got, tt.want); diff != "" {
+			opt := cmpopts.IgnoreFields(LeafNode{}, "IDMeta")
+			if diff := cmp.Diff(got, tt.want, opt); diff != "" {
 				t.Errorf("Parser.parseSubroutineName() diff (-got +want)\n%s", diff)
 			}
 			if diff := cmp.Diff(got1, tt.want1); diff != "" {
@@ -603,8 +652,8 @@ func TestParser_parseClassName(t *testing.T) {
 				IdentifierToken("MyClass"),
 				SymbolToken("."),
 			}},
-			want: MockNodes([]Token{
-				IdentifierToken("MyClass"),
+			want: MockNodes([]TreeNode{
+				AdaptTokenToNode(IdentifierToken("MyClass")),
 			}, ClassNameType, true),
 			want1: []Token{
 				SymbolToken("."),
@@ -614,13 +663,14 @@ func TestParser_parseClassName(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			p := &Parser{}
+			p := NewParser()
 			got, got1, err := p.parseClassName(tt.args.tokens)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Parser.parseClassName() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if diff := cmp.Diff(got, tt.want); diff != "" {
+			opt := cmpopts.IgnoreFields(LeafNode{}, "IDMeta")
+			if diff := cmp.Diff(got, tt.want, opt); diff != "" {
 				t.Errorf("Parser.parseClassName() diff (-got +want)\n%s", diff)
 			}
 			if diff := cmp.Diff(got1, tt.want1); diff != "" {
@@ -631,12 +681,15 @@ func TestParser_parseClassName(t *testing.T) {
 }
 
 func TestParser_parseSubroutineCall(t *testing.T) {
+	type fields struct {
+		symbolTable *SymbolTable
+	}
 	type args struct {
 		tokens TokenList
 	}
 	tests := []struct {
 		name    string
-		p       *Parser
+		fields  fields
 		args    args
 		want    TreeNode
 		want1   TokenList
@@ -644,6 +697,28 @@ func TestParser_parseSubroutineCall(t *testing.T) {
 	}{
 		{
 			name: "function call",
+			fields: fields{
+				symbolTable: &SymbolTable{
+					classScopeTable: ScopedTable{},
+					funcScopeTable: ScopedTable{
+						"x": &SymbolTableEntry{
+							Name:  "x",
+							Typ:   "int",
+							Kind:  Var,
+							Index: 0,
+						},
+						"y": &SymbolTableEntry{
+							Name:  "y",
+							Typ:   "int",
+							Kind:  Var,
+							Index: 0,
+						},
+					},
+					index: map[VarKind]int{
+						Var: 1,
+					},
+				},
+			},
 			args: args{[]Token{
 				IdentifierToken("MyFunc"),
 				SymbolToken("("),
@@ -653,23 +728,23 @@ func TestParser_parseSubroutineCall(t *testing.T) {
 				SymbolToken(")"),
 				SymbolToken(";"),
 			}},
-			want: MockNodes([]Token{
-				MockNodes([]Token{IdentifierToken("MyFunc")}, SubroutineNameType, true),
-				SymbolToken("("),
-				MockNodes([]Token{
-					MockNodes([]Token{
-						MockNodes([]Token{
-							MockNodes([]Token{IdentifierToken("x")}, VarNameType, true),
+			want: MockNodes([]TreeNode{
+				MockNodes([]TreeNode{AdaptTokenToNode(IdentifierToken("MyFunc"))}, SubroutineNameType, true),
+				AdaptTokenToNode(SymbolToken("(")),
+				MockNodes([]TreeNode{
+					MockNodes([]TreeNode{
+						MockNodes([]TreeNode{
+							MockNodes([]TreeNode{AdaptTokenToNode(IdentifierToken("x"))}, VarNameType, true),
 						}, TermType, false),
 					}, ExpressionType, false),
-					SymbolToken(","),
-					MockNodes([]Token{
-						MockNodes([]Token{
-							MockNodes([]Token{IdentifierToken("y")}, VarNameType, true),
+					AdaptTokenToNode(SymbolToken(",")),
+					MockNodes([]TreeNode{
+						MockNodes([]TreeNode{
+							MockNodes([]TreeNode{AdaptTokenToNode(IdentifierToken("y"))}, VarNameType, true),
 						}, TermType, false),
 					}, ExpressionType, false),
 				}, ExpressionListType, false),
-				SymbolToken(")"),
+				AdaptTokenToNode(SymbolToken(")")),
 			}, SubroutineCallType, true),
 			want1: []Token{
 				SymbolToken(";"),
@@ -677,18 +752,19 @@ func TestParser_parseSubroutineCall(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "function call with no argument",
+			name:   "function call with no argument",
+			fields: fields{&SymbolTable{}},
 			args: args{[]Token{
 				IdentifierToken("MyFunc"),
 				SymbolToken("("),
 				SymbolToken(")"),
 				SymbolToken(";"),
 			}},
-			want: MockNodes([]Token{
-				MockNodes([]Token{IdentifierToken("MyFunc")}, SubroutineNameType, true),
-				SymbolToken("("),
+			want: MockNodes([]TreeNode{
+				MockNodes([]TreeNode{AdaptTokenToNode(IdentifierToken("MyFunc"))}, SubroutineNameType, true),
+				AdaptTokenToNode(SymbolToken("(")),
 				MockNodes(nil, ExpressionListType, false),
-				SymbolToken(")"),
+				AdaptTokenToNode(SymbolToken(")")),
 			}, SubroutineCallType, true),
 			want1: []Token{
 				SymbolToken(";"),
@@ -696,7 +772,8 @@ func TestParser_parseSubroutineCall(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "method call",
+			name:   "method call",
+			fields: fields{&SymbolTable{}},
 			args: args{[]Token{
 				IdentifierToken("MyClass"),
 				SymbolToken("."),
@@ -705,13 +782,13 @@ func TestParser_parseSubroutineCall(t *testing.T) {
 				SymbolToken(")"),
 				SymbolToken(";"),
 			}},
-			want: MockNodes([]Token{
-				MockNodes([]Token{IdentifierToken("MyClass")}, ClassNameType, true),
-				SymbolToken("."),
-				MockNodes([]Token{IdentifierToken("MyMethod")}, SubroutineNameType, true),
-				SymbolToken("("),
+			want: MockNodes([]TreeNode{
+				MockNodes([]TreeNode{AdaptTokenToNode(IdentifierToken("MyClass"))}, ClassNameType, true),
+				AdaptTokenToNode(SymbolToken(".")),
+				MockNodes([]TreeNode{AdaptTokenToNode(IdentifierToken("MyMethod"))}, SubroutineNameType, true),
+				AdaptTokenToNode(SymbolToken("(")),
 				MockNodes(nil, ExpressionListType, false),
-				SymbolToken(")"),
+				AdaptTokenToNode(SymbolToken(")")),
 			}, SubroutineCallType, true),
 			want1: []Token{
 				SymbolToken(";"),
@@ -721,13 +798,16 @@ func TestParser_parseSubroutineCall(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			p := &Parser{}
+			p := &Parser{
+				symbolTable: tt.fields.symbolTable,
+			}
 			got, got1, err := p.parseSubroutineCall(tt.args.tokens)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Parser.parseSubroutineCall() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if diff := cmp.Diff(got, tt.want); diff != "" {
+			opt := cmpopts.IgnoreFields(LeafNode{}, "IDMeta")
+			if diff := cmp.Diff(got, tt.want, opt); diff != "" {
 				t.Errorf("Parser.parseSubroutineCall() diff (-got +want)\n%s", diff)
 			}
 			if diff := cmp.Diff(got1, tt.want1); diff != "" {
@@ -756,9 +836,9 @@ func TestParser_parseReturnStatement(t *testing.T) {
 				SymbolToken(";"),
 				SymbolToken("}"),
 			}},
-			want: MockNodes([]Token{
-				KeywordToken("return"),
-				SymbolToken(";"),
+			want: MockNodes([]TreeNode{
+				AdaptTokenToNode(KeywordToken("return")),
+				AdaptTokenToNode(SymbolToken(";")),
 			}, ReturnStatementType, false),
 			want1: []Token{
 				SymbolToken("}"),
@@ -773,16 +853,16 @@ func TestParser_parseReturnStatement(t *testing.T) {
 				SymbolToken(";"),
 				SymbolToken("}"),
 			}},
-			want: MockNodes([]Token{
-				KeywordToken("return"),
-				MockNodes([]Token{
-					MockNodes([]Token{
-						MockNodes([]Token{
-							IdentifierToken("res"),
+			want: MockNodes([]TreeNode{
+				AdaptTokenToNode(KeywordToken("return")),
+				MockNodes([]TreeNode{
+					MockNodes([]TreeNode{
+						MockNodes([]TreeNode{
+							AdaptTokenToNode(IdentifierToken("res")),
 						}, VarNameType, true),
 					}, TermType, false),
 				}, ExpressionType, false),
-				SymbolToken(";"),
+				AdaptTokenToNode(SymbolToken(";")),
 			}, ReturnStatementType, false),
 			want1: []Token{
 				SymbolToken("}"),
@@ -792,13 +872,14 @@ func TestParser_parseReturnStatement(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			p := &Parser{}
+			p := NewParser()
 			got, got1, err := p.parseReturnStatement(tt.args.tokens)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Parser.parseReturnStatement() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if diff := cmp.Diff(got, tt.want); diff != "" {
+			opt := cmpopts.IgnoreFields(LeafNode{}, "IDMeta")
+			if diff := cmp.Diff(got, tt.want, opt); diff != "" {
 				t.Errorf("Parser.parseReturnStatement() diff (-got +want)\n%s", diff)
 			}
 			if diff := cmp.Diff(got1, tt.want1); diff != "" {
@@ -830,15 +911,15 @@ func TestParser_parseDoStatement(t *testing.T) {
 				SymbolToken(";"),
 				SymbolToken("}"),
 			}},
-			want: MockNodes([]Token{
-				KeywordToken("do"),
-				MockNodes([]Token{
-					MockNodes([]Token{IdentifierToken("MyFunc")}, SubroutineNameType, true),
-					SymbolToken("("),
+			want: MockNodes([]TreeNode{
+				AdaptTokenToNode(KeywordToken("do")),
+				MockNodes([]TreeNode{
+					MockNodes([]TreeNode{AdaptTokenToNode(IdentifierToken("MyFunc"))}, SubroutineNameType, true),
+					AdaptTokenToNode(SymbolToken("(")),
 					MockNodes(nil, ExpressionListType, false),
-					SymbolToken(")"),
+					AdaptTokenToNode(SymbolToken(")")),
 				}, SubroutineCallType, true),
-				SymbolToken(";"),
+				AdaptTokenToNode(SymbolToken(";")),
 			}, DoStatementType, false),
 			want1: []Token{
 				SymbolToken("}"),
@@ -848,13 +929,14 @@ func TestParser_parseDoStatement(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			p := &Parser{}
+			p := NewParser()
 			got, got1, err := p.parseDoStatement(tt.args.tokens)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Parser.parseDoStatement() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if diff := cmp.Diff(got, tt.want); diff != "" {
+			opt := cmpopts.IgnoreFields(LeafNode{}, "IDMeta")
+			if diff := cmp.Diff(got, tt.want, opt); diff != "" {
 				t.Errorf("Parser.parseDoStatement() diff (-got +want)\n%s", diff)
 			}
 			if diff := cmp.Diff(got1, tt.want1); diff != "" {
@@ -897,43 +979,43 @@ func TestParser_parseWhileStatement(t *testing.T) {
 				SymbolToken("}"),
 				KeywordToken("return"),
 			}},
-			want: MockNodes([]Token{
-				KeywordToken("while"),
-				SymbolToken("("),
-				MockNodes([]Token{
-					MockNodes([]Token{
-						MockNodes([]Token{IdentifierToken("x")}, VarNameType, true),
+			want: MockNodes([]TreeNode{
+				AdaptTokenToNode(KeywordToken("while")),
+				AdaptTokenToNode(SymbolToken("(")),
+				MockNodes([]TreeNode{
+					MockNodes([]TreeNode{
+						MockNodes([]TreeNode{AdaptTokenToNode(IdentifierToken("x"))}, VarNameType, true),
 					}, TermType, false),
 				}, ExpressionType, false),
-				SymbolToken(")"),
-				SymbolToken("{"),
-				MockNodes([]Token{
-					MockNodes([]Token{
-						MockNodes([]Token{
-							KeywordToken("do"),
-							MockNodes([]Token{
-								MockNodes([]Token{IdentifierToken("MyFunc")}, SubroutineNameType, true),
-								SymbolToken("("),
+				AdaptTokenToNode(SymbolToken(")")),
+				AdaptTokenToNode(SymbolToken("{")),
+				MockNodes([]TreeNode{
+					MockNodes([]TreeNode{
+						MockNodes([]TreeNode{
+							AdaptTokenToNode(KeywordToken("do")),
+							MockNodes([]TreeNode{
+								MockNodes([]TreeNode{AdaptTokenToNode(IdentifierToken("MyFunc"))}, SubroutineNameType, true),
+								AdaptTokenToNode(SymbolToken("(")),
 								MockNodes(nil, ExpressionListType, false),
-								SymbolToken(")"),
+								AdaptTokenToNode(SymbolToken(")")),
 							}, SubroutineCallType, true),
-							SymbolToken(";"),
+							AdaptTokenToNode(SymbolToken(";")),
 						}, DoStatementType, false),
 					}, StatementType, true),
-					MockNodes([]Token{
-						MockNodes([]Token{
-							KeywordToken("do"),
-							MockNodes([]Token{
-								MockNodes([]Token{IdentifierToken("MyFunc")}, SubroutineNameType, true),
-								SymbolToken("("),
+					MockNodes([]TreeNode{
+						MockNodes([]TreeNode{
+							AdaptTokenToNode(KeywordToken("do")),
+							MockNodes([]TreeNode{
+								MockNodes([]TreeNode{AdaptTokenToNode(IdentifierToken("MyFunc"))}, SubroutineNameType, true),
+								AdaptTokenToNode(SymbolToken("(")),
 								MockNodes(nil, ExpressionListType, false),
-								SymbolToken(")"),
+								AdaptTokenToNode(SymbolToken(")")),
 							}, SubroutineCallType, true),
-							SymbolToken(";"),
+							AdaptTokenToNode(SymbolToken(";")),
 						}, DoStatementType, false),
 					}, StatementType, true),
 				}, StatementsType, false),
-				SymbolToken("}"),
+				AdaptTokenToNode(SymbolToken("}")),
 			}, WhileStatementType, false),
 			want1: []Token{
 				KeywordToken("return"),
@@ -943,13 +1025,14 @@ func TestParser_parseWhileStatement(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			p := &Parser{}
+			p := NewParser()
 			got, got1, err := p.parseWhileStatement(tt.args.tokens)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Parser.parseWhileStatement() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if diff := cmp.Diff(got, tt.want); diff != "" {
+			opt := cmpopts.IgnoreFields(LeafNode{}, "IDMeta")
+			if diff := cmp.Diff(got, tt.want, opt); diff != "" {
 				t.Errorf("Parser.parseWhileStatement() diff (-got +want)\n%s", diff)
 			}
 			if diff := cmp.Diff(got1, tt.want1); diff != "" {
@@ -992,42 +1075,42 @@ func TestParser_parseIfStatement(t *testing.T) {
 				SymbolToken("}"),
 				KeywordToken("return"),
 			}},
-			want: MockNodes([]Token{
-				KeywordToken("if"),
-				SymbolToken("("),
-				MockNodes([]Token{
-					MockNodes([]Token{
-						MockNodes([]Token{IdentifierToken("x")}, VarNameType, true),
+			want: MockNodes([]TreeNode{
+				AdaptTokenToNode(KeywordToken("if")),
+				AdaptTokenToNode(SymbolToken("(")),
+				MockNodes([]TreeNode{
+					MockNodes([]TreeNode{
+						MockNodes([]TreeNode{AdaptTokenToNode(IdentifierToken("x"))}, VarNameType, true),
 					}, TermType, false),
 				}, ExpressionType, false),
-				SymbolToken(")"),
-				SymbolToken("{"),
-				MockNodes([]Token{
-					MockNodes([]Token{
-						MockNodes([]Token{
-							KeywordToken("let"),
-							MockNodes([]Token{IdentifierToken("x")}, VarNameType, true),
-							SymbolToken("="),
-							MockNodes([]Token{
-								MockNodes([]Token{IntConstToken(100)}, TermType, false),
+				AdaptTokenToNode(SymbolToken(")")),
+				AdaptTokenToNode(SymbolToken("{")),
+				MockNodes([]TreeNode{
+					MockNodes([]TreeNode{
+						MockNodes([]TreeNode{
+							AdaptTokenToNode(KeywordToken("let")),
+							MockNodes([]TreeNode{AdaptTokenToNode(IdentifierToken("x"))}, VarNameType, true),
+							AdaptTokenToNode(SymbolToken("=")),
+							MockNodes([]TreeNode{
+								MockNodes([]TreeNode{AdaptTokenToNode(IntConstToken(100))}, TermType, false),
 							}, ExpressionType, false),
-							SymbolToken(";"),
+							AdaptTokenToNode(SymbolToken(";")),
 						}, LetStatementType, false),
 					}, StatementType, true),
-					MockNodes([]Token{
-						MockNodes([]Token{
-							KeywordToken("do"),
-							MockNodes([]Token{
-								MockNodes([]Token{IdentifierToken("MyFunc")}, SubroutineNameType, true),
-								SymbolToken("("),
+					MockNodes([]TreeNode{
+						MockNodes([]TreeNode{
+							AdaptTokenToNode(KeywordToken("do")),
+							MockNodes([]TreeNode{
+								MockNodes([]TreeNode{AdaptTokenToNode(IdentifierToken("MyFunc"))}, SubroutineNameType, true),
+								AdaptTokenToNode(SymbolToken("(")),
 								MockNodes(nil, ExpressionListType, false),
-								SymbolToken(")"),
+								AdaptTokenToNode(SymbolToken(")")),
 							}, SubroutineCallType, true),
-							SymbolToken(";"),
+							AdaptTokenToNode(SymbolToken(";")),
 						}, DoStatementType, false),
 					}, StatementType, true),
 				}, StatementsType, false),
-				SymbolToken("}"),
+				AdaptTokenToNode(SymbolToken("}")),
 			}, IfStatementType, false),
 			want1: []Token{
 				KeywordToken("return"),
@@ -1063,59 +1146,59 @@ func TestParser_parseIfStatement(t *testing.T) {
 				SymbolToken("}"),
 				KeywordToken("return"),
 			}},
-			want: MockNodes([]Token{
-				KeywordToken("if"),
-				SymbolToken("("),
-				MockNodes([]Token{
-					MockNodes([]Token{
-						MockNodes([]Token{IdentifierToken("x")}, VarNameType, true),
+			want: MockNodes([]TreeNode{
+				AdaptTokenToNode(KeywordToken("if")),
+				AdaptTokenToNode(SymbolToken("(")),
+				MockNodes([]TreeNode{
+					MockNodes([]TreeNode{
+						MockNodes([]TreeNode{AdaptTokenToNode(IdentifierToken("x"))}, VarNameType, true),
 					}, TermType, false),
 				}, ExpressionType, false),
-				SymbolToken(")"),
-				SymbolToken("{"),
-				MockNodes([]Token{
-					MockNodes([]Token{
-						MockNodes([]Token{
-							KeywordToken("do"),
-							MockNodes([]Token{
-								MockNodes([]Token{IdentifierToken("MyFunc")}, SubroutineNameType, true),
-								SymbolToken("("),
+				AdaptTokenToNode(SymbolToken(")")),
+				AdaptTokenToNode(SymbolToken("{")),
+				MockNodes([]TreeNode{
+					MockNodes([]TreeNode{
+						MockNodes([]TreeNode{
+							AdaptTokenToNode(KeywordToken("do")),
+							MockNodes([]TreeNode{
+								MockNodes([]TreeNode{AdaptTokenToNode(IdentifierToken("MyFunc"))}, SubroutineNameType, true),
+								AdaptTokenToNode(SymbolToken("(")),
 								MockNodes(nil, ExpressionListType, false),
-								SymbolToken(")"),
+								AdaptTokenToNode(SymbolToken(")")),
 							}, SubroutineCallType, true),
-							SymbolToken(";"),
+							AdaptTokenToNode(SymbolToken(";")),
 						}, DoStatementType, false),
 					}, StatementType, true),
 				}, StatementsType, false),
-				SymbolToken("}"),
-				KeywordToken("else"),
-				SymbolToken("{"),
-				MockNodes([]Token{
-					MockNodes([]Token{
-						MockNodes([]Token{
-							KeywordToken("let"),
-							MockNodes([]Token{IdentifierToken("x")}, VarNameType, true),
-							SymbolToken("="),
-							MockNodes([]Token{
-								MockNodes([]Token{IntConstToken(100)}, TermType, false),
+				AdaptTokenToNode(SymbolToken("}")),
+				AdaptTokenToNode(KeywordToken("else")),
+				AdaptTokenToNode(SymbolToken("{")),
+				MockNodes([]TreeNode{
+					MockNodes([]TreeNode{
+						MockNodes([]TreeNode{
+							AdaptTokenToNode(KeywordToken("let")),
+							MockNodes([]TreeNode{AdaptTokenToNode(IdentifierToken("x"))}, VarNameType, true),
+							AdaptTokenToNode(SymbolToken("=")),
+							MockNodes([]TreeNode{
+								MockNodes([]TreeNode{AdaptTokenToNode(IntConstToken(100))}, TermType, false),
 							}, ExpressionType, false),
-							SymbolToken(";"),
+							AdaptTokenToNode(SymbolToken(";")),
 						}, LetStatementType, false),
 					}, StatementType, true),
-					MockNodes([]Token{
-						MockNodes([]Token{
-							KeywordToken("do"),
-							MockNodes([]Token{
-								MockNodes([]Token{IdentifierToken("MyFuncElse")}, SubroutineNameType, true),
-								SymbolToken("("),
+					MockNodes([]TreeNode{
+						MockNodes([]TreeNode{
+							AdaptTokenToNode(KeywordToken("do")),
+							MockNodes([]TreeNode{
+								MockNodes([]TreeNode{AdaptTokenToNode(IdentifierToken("MyFuncElse"))}, SubroutineNameType, true),
+								AdaptTokenToNode(SymbolToken("(")),
 								MockNodes(nil, ExpressionListType, false),
-								SymbolToken(")"),
+								AdaptTokenToNode(SymbolToken(")")),
 							}, SubroutineCallType, true),
-							SymbolToken(";"),
+							AdaptTokenToNode(SymbolToken(";")),
 						}, DoStatementType, false),
 					}, StatementType, true),
 				}, StatementsType, false),
-				SymbolToken("}"),
+				AdaptTokenToNode(SymbolToken("}")),
 			}, IfStatementType, false),
 			want1: []Token{
 				KeywordToken("return"),
@@ -1125,13 +1208,14 @@ func TestParser_parseIfStatement(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			p := &Parser{}
+			p := NewParser()
 			got, got1, err := p.parseIfStatement(tt.args.tokens)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Parser.parseIfStatement() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if diff := cmp.Diff(got, tt.want); diff != "" {
+			opt := cmpopts.IgnoreFields(LeafNode{}, "IDMeta")
+			if diff := cmp.Diff(got, tt.want, opt); diff != "" {
 				t.Errorf("Parser.parseIfStatement() diff (-got +want)\n%s", diff)
 			}
 			if diff := cmp.Diff(got1, tt.want1); diff != "" {
@@ -1163,14 +1247,14 @@ func TestParser_parseLetStatement(t *testing.T) {
 				SymbolToken(";"),
 				KeywordToken("return"),
 			}},
-			want: MockNodes([]Token{
-				KeywordToken("let"),
-				MockNodes([]Token{IdentifierToken("x")}, VarNameType, true),
-				SymbolToken("="),
-				MockNodes([]Token{
-					MockNodes([]Token{IntConstToken(100)}, TermType, false),
+			want: MockNodes([]TreeNode{
+				AdaptTokenToNode(KeywordToken("let")),
+				MockNodes([]TreeNode{AdaptTokenToNode(IdentifierToken("x"))}, VarNameType, true),
+				AdaptTokenToNode(SymbolToken("=")),
+				MockNodes([]TreeNode{
+					MockNodes([]TreeNode{AdaptTokenToNode(IntConstToken(100))}, TermType, false),
 				}, ExpressionType, false),
-				SymbolToken(";"),
+				AdaptTokenToNode(SymbolToken(";")),
 			}, LetStatementType, false),
 			want1: []Token{
 				KeywordToken("return"),
@@ -1190,19 +1274,19 @@ func TestParser_parseLetStatement(t *testing.T) {
 				SymbolToken(";"),
 				KeywordToken("return"),
 			}},
-			want: MockNodes([]Token{
-				KeywordToken("let"),
-				MockNodes([]Token{IdentifierToken("x")}, VarNameType, true),
-				SymbolToken("["),
-				MockNodes([]Token{
-					MockNodes([]Token{IntConstToken(3)}, TermType, false),
+			want: MockNodes([]TreeNode{
+				AdaptTokenToNode(KeywordToken("let")),
+				MockNodes([]TreeNode{AdaptTokenToNode(IdentifierToken("x"))}, VarNameType, true),
+				AdaptTokenToNode(SymbolToken("[")),
+				MockNodes([]TreeNode{
+					MockNodes([]TreeNode{AdaptTokenToNode(IntConstToken(3))}, TermType, false),
 				}, ExpressionType, false),
-				SymbolToken("]"),
-				SymbolToken("="),
-				MockNodes([]Token{
-					MockNodes([]Token{IntConstToken(100)}, TermType, false),
+				AdaptTokenToNode(SymbolToken("]")),
+				AdaptTokenToNode(SymbolToken("=")),
+				MockNodes([]TreeNode{
+					MockNodes([]TreeNode{AdaptTokenToNode(IntConstToken(100))}, TermType, false),
 				}, ExpressionType, false),
-				SymbolToken(";"),
+				AdaptTokenToNode(SymbolToken(";")),
 			}, LetStatementType, false),
 			want1: []Token{
 				KeywordToken("return"),
@@ -1212,13 +1296,14 @@ func TestParser_parseLetStatement(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			p := &Parser{}
+			p := NewParser()
 			got, got1, err := p.parseLetStatement(tt.args.tokens)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Parser.parseLetStatement() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if diff := cmp.Diff(got, tt.want); diff != "" {
+			opt := cmpopts.IgnoreFields(LeafNode{}, "IDMeta")
+			if diff := cmp.Diff(got, tt.want, opt); diff != "" {
 				t.Errorf("Parser.parseLetStatement() diff (-got +want)\n%s", diff)
 			}
 			if diff := cmp.Diff(got1, tt.want1); diff != "" {
@@ -1261,16 +1346,16 @@ func TestParser_parseStatements(t *testing.T) {
 				SymbolToken(";"),
 				KeywordToken("return"),
 			}},
-			want: MockNodes([]Token{
-				MockNodes([]Token{
-					MockNodes([]Token{
-						KeywordToken("let"),
-						MockNodes([]Token{IdentifierToken("x")}, VarNameType, true),
-						SymbolToken("="),
-						MockNodes([]Token{
-							MockNodes([]Token{IntConstToken(100)}, TermType, false),
+			want: MockNodes([]TreeNode{
+				MockNodes([]TreeNode{
+					MockNodes([]TreeNode{
+						AdaptTokenToNode(KeywordToken("let")),
+						MockNodes([]TreeNode{AdaptTokenToNode(IdentifierToken("x"))}, VarNameType, true),
+						AdaptTokenToNode(SymbolToken("=")),
+						MockNodes([]TreeNode{
+							MockNodes([]TreeNode{AdaptTokenToNode(IntConstToken(100))}, TermType, false),
 						}, ExpressionType, false),
-						SymbolToken(";"),
+						AdaptTokenToNode(SymbolToken(";")),
 					}, LetStatementType, false),
 				}, StatementType, true),
 			}, StatementsType, false),
@@ -1295,33 +1380,33 @@ func TestParser_parseStatements(t *testing.T) {
 				KeywordToken("return"),
 				SymbolToken(";"),
 			}},
-			want: MockNodes([]Token{
-				MockNodes([]Token{
-					MockNodes([]Token{
-						KeywordToken("let"),
-						MockNodes([]Token{IdentifierToken("x")}, VarNameType, true),
-						SymbolToken("="),
-						MockNodes([]Token{
-							MockNodes([]Token{IntConstToken(100)}, TermType, false),
+			want: MockNodes([]TreeNode{
+				MockNodes([]TreeNode{
+					MockNodes([]TreeNode{
+						AdaptTokenToNode(KeywordToken("let")),
+						MockNodes([]TreeNode{AdaptTokenToNode(IdentifierToken("x"))}, VarNameType, true),
+						AdaptTokenToNode(SymbolToken("=")),
+						MockNodes([]TreeNode{
+							MockNodes([]TreeNode{AdaptTokenToNode(IntConstToken(100))}, TermType, false),
 						}, ExpressionType, false),
-						SymbolToken(";"),
+						AdaptTokenToNode(SymbolToken(";")),
 					}, LetStatementType, false),
 				}, StatementType, true),
-				MockNodes([]Token{
-					MockNodes([]Token{
-						KeywordToken("let"),
-						MockNodes([]Token{IdentifierToken("y")}, VarNameType, true),
-						SymbolToken("="),
-						MockNodes([]Token{
-							MockNodes([]Token{IntConstToken(200)}, TermType, false),
+				MockNodes([]TreeNode{
+					MockNodes([]TreeNode{
+						AdaptTokenToNode(KeywordToken("let")),
+						MockNodes([]TreeNode{AdaptTokenToNode(IdentifierToken("y"))}, VarNameType, true),
+						AdaptTokenToNode(SymbolToken("=")),
+						MockNodes([]TreeNode{
+							MockNodes([]TreeNode{AdaptTokenToNode(IntConstToken(200))}, TermType, false),
 						}, ExpressionType, false),
-						SymbolToken(";"),
+						AdaptTokenToNode(SymbolToken(";")),
 					}, LetStatementType, false),
 				}, StatementType, true),
-				MockNodes([]Token{
-					MockNodes([]Token{
-						KeywordToken("return"),
-						SymbolToken(";"),
+				MockNodes([]TreeNode{
+					MockNodes([]TreeNode{
+						AdaptTokenToNode(KeywordToken("return")),
+						AdaptTokenToNode(SymbolToken(";")),
 					}, ReturnStatementType, false),
 				}, StatementType, true),
 			}, StatementsType, false),
@@ -1331,13 +1416,14 @@ func TestParser_parseStatements(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			p := &Parser{}
+			p := NewParser()
 			got, got1, err := p.parseStatements(tt.args.tokens)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Parser.parseStatements() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if diff := cmp.Diff(got, tt.want); diff != "" {
+			opt := cmpopts.IgnoreFields(LeafNode{}, "IDMeta")
+			if diff := cmp.Diff(got, tt.want, opt); diff != "" {
 				t.Errorf("Parser.parseStatements() diff (-got +want)\n%s", diff)
 			}
 			if diff := cmp.Diff(got1, tt.want1); diff != "" {
@@ -1357,6 +1443,7 @@ func TestParser_parseVarDec(t *testing.T) {
 		args    args
 		want    TreeNode
 		want1   TokenList
+		want2   *SymbolTable
 		wantErr bool
 	}{
 		{
@@ -1368,14 +1455,28 @@ func TestParser_parseVarDec(t *testing.T) {
 				SymbolToken(";"),
 				KeywordToken("return"),
 			}},
-			want: MockNodes([]Token{
-				KeywordToken("var"),
-				MockNodes([]Token{KeywordToken("boolean")}, TypeType, true),
-				MockNodes([]Token{IdentifierToken("x")}, VarNameType, true),
-				SymbolToken(";"),
+			want: MockNodes([]TreeNode{
+				AdaptTokenToNode(KeywordToken("var")),
+				MockNodes([]TreeNode{AdaptTokenToNode(KeywordToken("boolean"))}, TypeType, true),
+				MockNodes([]TreeNode{AdaptTokenToNode(IdentifierToken("x"))}, VarNameType, true),
+				AdaptTokenToNode(SymbolToken(";")),
 			}, VarDecType, false),
 			want1: []Token{
 				KeywordToken("return"),
+			},
+			want2: &SymbolTable{
+				classScopeTable: ScopedTable{},
+				funcScopeTable: ScopedTable{
+					"x": &SymbolTableEntry{
+						Name:  "x",
+						Typ:   "boolean",
+						Kind:  Var,
+						Index: 0,
+					},
+				},
+				index: map[VarKind]int{
+					Var: 1,
+				},
 			},
 			wantErr: false,
 		},
@@ -1390,33 +1491,58 @@ func TestParser_parseVarDec(t *testing.T) {
 				SymbolToken(";"),
 				KeywordToken("return"),
 			}},
-			want: MockNodes([]Token{
-				KeywordToken("var"),
-				MockNodes([]Token{KeywordToken("int")}, TypeType, true),
-				MockNodes([]Token{IdentifierToken("x")}, VarNameType, true),
-				SymbolToken(","),
-				MockNodes([]Token{IdentifierToken("y")}, VarNameType, true),
-				SymbolToken(";"),
+			want: MockNodes([]TreeNode{
+				AdaptTokenToNode(KeywordToken("var")),
+				MockNodes([]TreeNode{AdaptTokenToNode(KeywordToken("int"))}, TypeType, true),
+				MockNodes([]TreeNode{AdaptTokenToNode(IdentifierToken("x"))}, VarNameType, true),
+				AdaptTokenToNode(SymbolToken(",")),
+				MockNodes([]TreeNode{AdaptTokenToNode(IdentifierToken("y"))}, VarNameType, true),
+				AdaptTokenToNode(SymbolToken(";")),
 			}, VarDecType, false),
 			want1: []Token{
 				KeywordToken("return"),
+			},
+			want2: &SymbolTable{
+				classScopeTable: ScopedTable{},
+				funcScopeTable: ScopedTable{
+					"x": &SymbolTableEntry{
+						Name:  "x",
+						Typ:   "int",
+						Kind:  Var,
+						Index: 0,
+					},
+					"y": &SymbolTableEntry{
+						Name:  "y",
+						Typ:   "int",
+						Kind:  Var,
+						Index: 1,
+					},
+				},
+				index: map[VarKind]int{
+					Var: 2,
+				},
 			},
 			wantErr: false,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			p := &Parser{}
+			p := NewParser()
 			got, got1, err := p.parseVarDec(tt.args.tokens)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Parser.parseVarDec() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if diff := cmp.Diff(got, tt.want); diff != "" {
+			opt := cmpopts.IgnoreFields(LeafNode{}, "IDMeta")
+			if diff := cmp.Diff(got, tt.want, opt); diff != "" {
 				t.Errorf("Parser.parseVarDec() diff (-got +want)\n%s", diff)
 			}
 			if diff := cmp.Diff(got1, tt.want1); diff != "" {
 				t.Errorf("Parser.parseVarDec() diff (-got1 +want1)\n%s", diff)
+			}
+			opt = cmp.AllowUnexported(*p.symbolTable)
+			if diff := cmp.Diff(p.symbolTable, tt.want2, opt); diff != "" {
+				t.Errorf("Parser.parseVarDec() SymbolTable (-got +want2)\n%s", diff)
 			}
 		})
 	}
@@ -1440,8 +1566,8 @@ func TestParser_parseType(t *testing.T) {
 				KeywordToken("boolean"),
 				IdentifierToken("x"),
 			}},
-			want: MockNodes([]Token{
-				KeywordToken("boolean"),
+			want: MockNodes([]TreeNode{
+				AdaptTokenToNode(KeywordToken("boolean")),
 			}, TypeType, true),
 			want1: []Token{
 				IdentifierToken("x"),
@@ -1454,8 +1580,8 @@ func TestParser_parseType(t *testing.T) {
 				IdentifierToken("MyClass"),
 				IdentifierToken("x"),
 			}},
-			want: MockNodes([]Token{
-				MockNodes([]Token{IdentifierToken("MyClass")}, ClassNameType, true),
+			want: MockNodes([]TreeNode{
+				MockNodes([]TreeNode{AdaptTokenToNode(IdentifierToken("MyClass"))}, ClassNameType, true),
 			}, TypeType, true),
 			want1: []Token{
 				IdentifierToken("x"),
@@ -1465,13 +1591,14 @@ func TestParser_parseType(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			p := &Parser{}
+			p := NewParser()
 			got, got1, err := p.parseType(tt.args.tokens)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Parser.parseType() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if diff := cmp.Diff(got, tt.want); diff != "" {
+			opt := cmpopts.IgnoreFields(LeafNode{}, "IDMeta")
+			if diff := cmp.Diff(got, tt.want, opt); diff != "" {
 				t.Errorf("Parser.parseType() diff (-got +want)\n%s", diff)
 			}
 			if diff := cmp.Diff(got1, tt.want1); diff != "" {
@@ -1505,22 +1632,22 @@ func TestParser_parseSubroutineBody(t *testing.T) {
 				SymbolToken("}"),
 				KeywordToken("class"),
 			}},
-			want: MockNodes([]Token{
-				SymbolToken("{"),
-				MockNodes([]Token{
-					MockNodes([]Token{
-						MockNodes([]Token{
-							KeywordToken("let"),
-							MockNodes([]Token{IdentifierToken("x")}, VarNameType, true),
-							SymbolToken("="),
-							MockNodes([]Token{
-								MockNodes([]Token{IntConstToken(100)}, TermType, false),
+			want: MockNodes([]TreeNode{
+				AdaptTokenToNode(SymbolToken("{")),
+				MockNodes([]TreeNode{
+					MockNodes([]TreeNode{
+						MockNodes([]TreeNode{
+							AdaptTokenToNode(KeywordToken("let")),
+							MockNodes([]TreeNode{AdaptTokenToNode(IdentifierToken("x"))}, VarNameType, true),
+							AdaptTokenToNode(SymbolToken("=")),
+							MockNodes([]TreeNode{
+								MockNodes([]TreeNode{AdaptTokenToNode(IntConstToken(100))}, TermType, false),
 							}, ExpressionType, false),
-							SymbolToken(";"),
+							AdaptTokenToNode(SymbolToken(";")),
 						}, LetStatementType, false),
 					}, StatementType, true),
 				}, StatementsType, false),
-				SymbolToken("}"),
+				AdaptTokenToNode(SymbolToken("}")),
 			}, SubroutineBodyType, false),
 			want1: []Token{
 				KeywordToken("class"),
@@ -1547,34 +1674,34 @@ func TestParser_parseSubroutineBody(t *testing.T) {
 				SymbolToken("}"),
 				KeywordToken("class"),
 			}},
-			want: MockNodes([]Token{
-				SymbolToken("{"),
-				MockNodes([]Token{
-					KeywordToken("var"),
-					MockNodes([]Token{KeywordToken("int")}, TypeType, true),
-					MockNodes([]Token{IdentifierToken("x")}, VarNameType, true),
-					SymbolToken(";"),
+			want: MockNodes([]TreeNode{
+				AdaptTokenToNode(SymbolToken("{")),
+				MockNodes([]TreeNode{
+					AdaptTokenToNode(KeywordToken("var")),
+					MockNodes([]TreeNode{AdaptTokenToNode(KeywordToken("int"))}, TypeType, true),
+					MockNodes([]TreeNode{AdaptTokenToNode(IdentifierToken("x"))}, VarNameType, true),
+					AdaptTokenToNode(SymbolToken(";")),
 				}, VarDecType, false),
-				MockNodes([]Token{
-					KeywordToken("var"),
-					MockNodes([]Token{KeywordToken("char")}, TypeType, true),
-					MockNodes([]Token{IdentifierToken("y")}, VarNameType, true),
-					SymbolToken(";"),
+				MockNodes([]TreeNode{
+					AdaptTokenToNode(KeywordToken("var")),
+					MockNodes([]TreeNode{AdaptTokenToNode(KeywordToken("char"))}, TypeType, true),
+					MockNodes([]TreeNode{AdaptTokenToNode(IdentifierToken("y"))}, VarNameType, true),
+					AdaptTokenToNode(SymbolToken(";")),
 				}, VarDecType, false),
-				MockNodes([]Token{
-					MockNodes([]Token{
-						MockNodes([]Token{
-							KeywordToken("let"),
-							MockNodes([]Token{IdentifierToken("x")}, VarNameType, true),
-							SymbolToken("="),
-							MockNodes([]Token{
-								MockNodes([]Token{IntConstToken(100)}, TermType, false),
+				MockNodes([]TreeNode{
+					MockNodes([]TreeNode{
+						MockNodes([]TreeNode{
+							AdaptTokenToNode(KeywordToken("let")),
+							MockNodes([]TreeNode{AdaptTokenToNode(IdentifierToken("x"))}, VarNameType, true),
+							AdaptTokenToNode(SymbolToken("=")),
+							MockNodes([]TreeNode{
+								MockNodes([]TreeNode{AdaptTokenToNode(IntConstToken(100))}, TermType, false),
 							}, ExpressionType, false),
-							SymbolToken(";"),
+							AdaptTokenToNode(SymbolToken(";")),
 						}, LetStatementType, false),
 					}, StatementType, true),
 				}, StatementsType, false),
-				SymbolToken("}"),
+				AdaptTokenToNode(SymbolToken("}")),
 			}, SubroutineBodyType, false),
 			want1: []Token{
 				KeywordToken("class"),
@@ -1584,13 +1711,14 @@ func TestParser_parseSubroutineBody(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			p := &Parser{}
+			p := NewParser()
 			got, got1, err := p.parseSubroutineBody(tt.args.tokens)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Parser.parseSubroutineBody() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if diff := cmp.Diff(got, tt.want); diff != "" {
+			opt := cmpopts.IgnoreFields(LeafNode{}, "IDMeta")
+			if diff := cmp.Diff(got, tt.want, opt); diff != "" {
 				t.Errorf("Parser.parseSubroutineBody() diff (-got +want)\n%s", diff)
 			}
 			if diff := cmp.Diff(got1, tt.want1); diff != "" {
@@ -1610,6 +1738,7 @@ func TestParser_parseParameterList(t *testing.T) {
 		args    args
 		want    TreeNode
 		want1   TokenList
+		want2   *SymbolTable
 		wantErr bool
 	}{
 		{
@@ -1620,6 +1749,11 @@ func TestParser_parseParameterList(t *testing.T) {
 			want: MockNodes(nil, ParameterListType, false),
 			want1: []Token{
 				SymbolToken(")"),
+			},
+			want2: &SymbolTable{
+				classScopeTable: ScopedTable{},
+				funcScopeTable:  ScopedTable{},
+				index:           map[VarKind]int{},
 			},
 			wantErr: false,
 		},
@@ -1633,32 +1767,57 @@ func TestParser_parseParameterList(t *testing.T) {
 				IdentifierToken("y"),
 				SymbolToken(")"),
 			}},
-			want: MockNodes([]Token{
-				MockNodes([]Token{KeywordToken("int")}, TypeType, true),
-				MockNodes([]Token{IdentifierToken("x")}, VarNameType, true),
-				SymbolToken(","),
-				MockNodes([]Token{KeywordToken("int")}, TypeType, true),
-				MockNodes([]Token{IdentifierToken("y")}, VarNameType, true),
+			want: MockNodes([]TreeNode{
+				MockNodes([]TreeNode{AdaptTokenToNode(KeywordToken("int"))}, TypeType, true),
+				MockNodes([]TreeNode{AdaptTokenToNode(IdentifierToken("x"))}, VarNameType, true),
+				AdaptTokenToNode(SymbolToken(",")),
+				MockNodes([]TreeNode{AdaptTokenToNode(KeywordToken("int"))}, TypeType, true),
+				MockNodes([]TreeNode{AdaptTokenToNode(IdentifierToken("y"))}, VarNameType, true),
 			}, ParameterListType, false),
 			want1: []Token{
 				SymbolToken(")"),
+			},
+			want2: &SymbolTable{
+				classScopeTable: ScopedTable{},
+				funcScopeTable: ScopedTable{
+					"x": &SymbolTableEntry{
+						Name:  "x",
+						Typ:   "int",
+						Kind:  Argument,
+						Index: 0,
+					},
+					"y": &SymbolTableEntry{
+						Name:  "y",
+						Typ:   "int",
+						Kind:  Argument,
+						Index: 1,
+					},
+				},
+				index: map[VarKind]int{
+					Argument: 2,
+				},
 			},
 			wantErr: false,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			p := &Parser{}
+			p := NewParser()
 			got, got1, err := p.parseParameterList(tt.args.tokens)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Parser.parseParameterList() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if diff := cmp.Diff(got, tt.want); diff != "" {
+			opt := cmpopts.IgnoreFields(LeafNode{}, "IDMeta")
+			if diff := cmp.Diff(got, tt.want, opt); diff != "" {
 				t.Errorf("Parser.parseParameterList() diff (-got +want)\n%s", diff)
 			}
 			if diff := cmp.Diff(got1, tt.want1); diff != "" {
 				t.Errorf("Parser.parseParameterList() diff (-got1 +want1)\n%s", diff)
+			}
+			opt = cmp.AllowUnexported(*p.symbolTable)
+			if diff := cmp.Diff(p.symbolTable, tt.want2, opt); diff != "" {
+				t.Errorf("Parser.parseParameterList() SymbolTable (-got +want2)\n%s", diff)
 			}
 		})
 	}
@@ -1692,27 +1851,27 @@ func TestParser_parseSubroutineDec(t *testing.T) {
 				SymbolToken("}"),
 				KeywordToken("class"),
 			}},
-			want: MockNodes([]Token{
-				KeywordToken("constructor"),
-				MockNodes([]Token{KeywordToken("int")}, TypeType, true),
-				MockNodes([]Token{IdentifierToken("myFunc")}, SubroutineNameType, true),
-				SymbolToken("("),
-				MockNodes([]Token{
-					MockNodes([]Token{KeywordToken("int")}, TypeType, true),
-					MockNodes([]Token{IdentifierToken("x")}, VarNameType, true),
+			want: MockNodes([]TreeNode{
+				AdaptTokenToNode(KeywordToken("constructor")),
+				MockNodes([]TreeNode{AdaptTokenToNode(KeywordToken("int"))}, TypeType, true),
+				MockNodes([]TreeNode{AdaptTokenToNode(IdentifierToken("myFunc"))}, SubroutineNameType, true),
+				AdaptTokenToNode(SymbolToken("(")),
+				MockNodes([]TreeNode{
+					MockNodes([]TreeNode{AdaptTokenToNode(KeywordToken("int"))}, TypeType, true),
+					MockNodes([]TreeNode{AdaptTokenToNode(IdentifierToken("x"))}, VarNameType, true),
 				}, ParameterListType, false),
-				SymbolToken(")"),
-				MockNodes([]Token{
-					SymbolToken("{"),
-					MockNodes([]Token{
-						MockNodes([]Token{
-							MockNodes([]Token{
-								KeywordToken("return"),
-								SymbolToken(";"),
+				AdaptTokenToNode(SymbolToken(")")),
+				MockNodes([]TreeNode{
+					AdaptTokenToNode(SymbolToken("{")),
+					MockNodes([]TreeNode{
+						MockNodes([]TreeNode{
+							MockNodes([]TreeNode{
+								AdaptTokenToNode(KeywordToken("return")),
+								AdaptTokenToNode(SymbolToken(";")),
 							}, ReturnStatementType, false),
 						}, StatementType, true),
 					}, StatementsType, false),
-					SymbolToken("}"),
+					AdaptTokenToNode(SymbolToken("}")),
 				}, SubroutineBodyType, false),
 			}, SubroutineDecType, false),
 			want1: []Token{
@@ -1723,13 +1882,14 @@ func TestParser_parseSubroutineDec(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			p := &Parser{}
+			p := NewParser()
 			got, got1, err := p.parseSubroutineDec(tt.args.tokens)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Parser.parseSubroutineDec() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if diff := cmp.Diff(got, tt.want); diff != "" {
+			opt := cmpopts.IgnoreFields(LeafNode{}, "IDMeta")
+			if diff := cmp.Diff(got, tt.want, opt); diff != "" {
 				t.Errorf("Parser.parseSubroutineDec() diff (-got +want)\n%s", diff)
 			}
 			if diff := cmp.Diff(got1, tt.want1); diff != "" {
@@ -1749,6 +1909,7 @@ func TestParser_parseClassVarDec(t *testing.T) {
 		args    args
 		want    TreeNode
 		want1   TokenList
+		want2   *SymbolTable
 		wantErr bool
 	}{
 		{
@@ -1760,14 +1921,28 @@ func TestParser_parseClassVarDec(t *testing.T) {
 				SymbolToken(";"),
 				KeywordToken("return"),
 			}},
-			want: MockNodes([]Token{
-				KeywordToken("static"),
-				MockNodes([]Token{KeywordToken("boolean")}, TypeType, true),
-				MockNodes([]Token{IdentifierToken("x")}, VarNameType, true),
-				SymbolToken(";"),
+			want: MockNodes([]TreeNode{
+				AdaptTokenToNode(KeywordToken("static")),
+				MockNodes([]TreeNode{AdaptTokenToNode(KeywordToken("boolean"))}, TypeType, true),
+				MockNodes([]TreeNode{AdaptTokenToNode(IdentifierToken("x"))}, VarNameType, true),
+				AdaptTokenToNode(SymbolToken(";")),
 			}, ClassVarDecType, false),
 			want1: []Token{
 				KeywordToken("return"),
+			},
+			want2: &SymbolTable{
+				classScopeTable: ScopedTable{
+					"x": &SymbolTableEntry{
+						Name:  "x",
+						Typ:   "boolean",
+						Kind:  Static,
+						Index: 0,
+					},
+				},
+				funcScopeTable: ScopedTable{},
+				index: map[VarKind]int{
+					Static: 1,
+				},
 			},
 			wantErr: false,
 		},
@@ -1782,33 +1957,58 @@ func TestParser_parseClassVarDec(t *testing.T) {
 				SymbolToken(";"),
 				KeywordToken("return"),
 			}},
-			want: MockNodes([]Token{
-				KeywordToken("field"),
-				MockNodes([]Token{KeywordToken("int")}, TypeType, true),
-				MockNodes([]Token{IdentifierToken("x")}, VarNameType, true),
-				SymbolToken(","),
-				MockNodes([]Token{IdentifierToken("y")}, VarNameType, true),
-				SymbolToken(";"),
+			want: MockNodes([]TreeNode{
+				AdaptTokenToNode(KeywordToken("field")),
+				MockNodes([]TreeNode{AdaptTokenToNode(KeywordToken("int"))}, TypeType, true),
+				MockNodes([]TreeNode{AdaptTokenToNode(IdentifierToken("x"))}, VarNameType, true),
+				AdaptTokenToNode(SymbolToken(",")),
+				MockNodes([]TreeNode{AdaptTokenToNode(IdentifierToken("y"))}, VarNameType, true),
+				AdaptTokenToNode(SymbolToken(";")),
 			}, ClassVarDecType, false),
 			want1: []Token{
 				KeywordToken("return"),
+			},
+			want2: &SymbolTable{
+				classScopeTable: ScopedTable{
+					"x": &SymbolTableEntry{
+						Name:  "x",
+						Typ:   "int",
+						Kind:  Field,
+						Index: 0,
+					},
+					"y": &SymbolTableEntry{
+						Name:  "y",
+						Typ:   "int",
+						Kind:  Field,
+						Index: 1,
+					},
+				},
+				funcScopeTable: ScopedTable{},
+				index: map[VarKind]int{
+					Field: 2,
+				},
 			},
 			wantErr: false,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			p := &Parser{}
+			p := NewParser()
 			got, got1, err := p.parseClassVarDec(tt.args.tokens)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Parser.parseClassVarDec() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if diff := cmp.Diff(got, tt.want); diff != "" {
+			opt := cmpopts.IgnoreFields(LeafNode{}, "IDMeta")
+			if diff := cmp.Diff(got, tt.want, opt); diff != "" {
 				t.Errorf("Parser.parseClassVarDec() diff (-got +want)\n%s", diff)
 			}
 			if diff := cmp.Diff(got1, tt.want1); diff != "" {
 				t.Errorf("Parser.parseClassVarDec() diff (-got1 +want1)\n%s", diff)
+			}
+			opt = cmp.AllowUnexported(*p.symbolTable)
+			if diff := cmp.Diff(p.symbolTable, tt.want2, opt); diff != "" {
+				t.Errorf("Parser.parseClassVarDec() SymbolTable (-got +want2)\n%s", diff)
 			}
 		})
 	}
@@ -1850,42 +2050,42 @@ func TestParser_parseClass(t *testing.T) {
 				SymbolToken("}"),
 				KeywordToken("return"),
 			}},
-			want: MockNodes([]Token{
-				KeywordToken("class"),
-				MockNodes([]Token{
-					IdentifierToken("MyClass"),
+			want: MockNodes([]TreeNode{
+				AdaptTokenToNode(KeywordToken("class")),
+				MockNodes([]TreeNode{
+					AdaptTokenToNode(IdentifierToken("MyClass")),
 				}, ClassNameType, true),
-				SymbolToken("{"),
-				MockNodes([]Token{
-					KeywordToken("static"),
-					MockNodes([]Token{KeywordToken("boolean")}, TypeType, true),
-					MockNodes([]Token{IdentifierToken("x")}, VarNameType, true),
-					SymbolToken(";"),
+				AdaptTokenToNode(SymbolToken("{")),
+				MockNodes([]TreeNode{
+					AdaptTokenToNode(KeywordToken("static")),
+					MockNodes([]TreeNode{AdaptTokenToNode(KeywordToken("boolean"))}, TypeType, true),
+					MockNodes([]TreeNode{AdaptTokenToNode(IdentifierToken("x"))}, VarNameType, true),
+					AdaptTokenToNode(SymbolToken(";")),
 				}, ClassVarDecType, false),
-				MockNodes([]Token{
-					KeywordToken("constructor"),
-					MockNodes([]Token{KeywordToken("int")}, TypeType, true),
-					MockNodes([]Token{IdentifierToken("myFunc")}, SubroutineNameType, true),
-					SymbolToken("("),
-					MockNodes([]Token{
-						MockNodes([]Token{KeywordToken("int")}, TypeType, true),
-						MockNodes([]Token{IdentifierToken("x")}, VarNameType, true),
+				MockNodes([]TreeNode{
+					AdaptTokenToNode(KeywordToken("constructor")),
+					MockNodes([]TreeNode{AdaptTokenToNode(KeywordToken("int"))}, TypeType, true),
+					MockNodes([]TreeNode{AdaptTokenToNode(IdentifierToken("myFunc"))}, SubroutineNameType, true),
+					AdaptTokenToNode(SymbolToken("(")),
+					MockNodes([]TreeNode{
+						MockNodes([]TreeNode{AdaptTokenToNode(KeywordToken("int"))}, TypeType, true),
+						MockNodes([]TreeNode{AdaptTokenToNode(IdentifierToken("x"))}, VarNameType, true),
 					}, ParameterListType, false),
-					SymbolToken(")"),
-					MockNodes([]Token{
-						SymbolToken("{"),
-						MockNodes([]Token{
-							MockNodes([]Token{
-								MockNodes([]Token{
-									KeywordToken("return"),
-									SymbolToken(";"),
+					AdaptTokenToNode(SymbolToken(")")),
+					MockNodes([]TreeNode{
+						AdaptTokenToNode(SymbolToken("{")),
+						MockNodes([]TreeNode{
+							MockNodes([]TreeNode{
+								MockNodes([]TreeNode{
+									AdaptTokenToNode(KeywordToken("return")),
+									AdaptTokenToNode(SymbolToken(";")),
 								}, ReturnStatementType, false),
 							}, StatementType, true),
 						}, StatementsType, false),
-						SymbolToken("}"),
+						AdaptTokenToNode(SymbolToken("}")),
 					}, SubroutineBodyType, false),
 				}, SubroutineDecType, false),
-				SymbolToken("}"),
+				AdaptTokenToNode(SymbolToken("}")),
 			}, ClassType, false),
 			want1: []Token{
 				KeywordToken("return"),
@@ -1895,13 +2095,14 @@ func TestParser_parseClass(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			p := &Parser{}
+			p := NewParser()
 			got, got1, err := p.parseClass(tt.args.tokens)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Parser.parseClass() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if diff := cmp.Diff(got, tt.want); diff != "" {
+			opt := cmpopts.IgnoreFields(LeafNode{}, "IDMeta")
+			if diff := cmp.Diff(got, tt.want, opt); diff != "" {
 				t.Errorf("Parser.parseClass() diff (-got +want)\n%s", diff)
 			}
 			if diff := cmp.Diff(got1, tt.want1); diff != "" {

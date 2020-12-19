@@ -10,11 +10,18 @@ import (
 	"path/filepath"
 )
 
+var (
+	tokenize  = false
+	toStdout  = false
+	idAttr    = false
+	parseTree = false
+)
+
 func main() {
-	tokenize := false
-	toStdout := false
 	flag.BoolVar(&tokenize, "tokenize", false, "output tokenized result as xml")
 	flag.BoolVar(&toStdout, "toStdout", false, "output result to stdout instead of file")
+	flag.BoolVar(&idAttr, "idAttr", false, "output attributes of identifier node")
+	flag.BoolVar(&parseTree, "parseTree", false, "output parse tree as xml format")
 	flag.Parse()
 
 	if flag.NArg() < 1 {
@@ -45,18 +52,9 @@ func main() {
 				fmt.Println(xml)
 				continue
 			}
-
-			e := filepath.Ext(f)
-			n := fmt.Sprintf("%sT.out.xml", f[0:len(f)-len(e)])
-			w, err := os.Create(n)
-			if err != nil {
-				log.Fatal(err, f)
+			if err := write(f, xml, "T.out.xml"); err != nil {
+				log.Fatal(err)
 			}
-			_, err = w.WriteString(xml)
-			if err != nil {
-				log.Fatal(err, f)
-			}
-
 			continue
 		}
 
@@ -66,20 +64,30 @@ func main() {
 			log.Fatal(err, f)
 		}
 
-		xml := tree.Xml()
-		if toStdout {
-			fmt.Println(xml)
+		if parseTree {
+			xml := tree.Xml()
+			if toStdout {
+				fmt.Println(xml)
+				continue
+			}
+			if err := write(f, xml, ".out.xml"); err != nil {
+				log.Fatal(err)
+			}
 			continue
 		}
-		e := filepath.Ext(f)
-		n := fmt.Sprintf("%s.out.xml", f[0:len(f)-len(e)])
-		w, err := os.Create(n)
+
+		compiler := NewCompiler()
+		vmCode, err := compiler.Compile(tree)
 		if err != nil {
 			log.Fatal(err, f)
 		}
-		_, err = w.WriteString(xml)
-		if err != nil {
-			log.Fatal(err, f)
+
+		if toStdout {
+			fmt.Println(vmCode)
+			continue
+		}
+		if err := write(f, vmCode, ".vm"); err != nil {
+			log.Fatal(err)
 		}
 	}
 }
@@ -106,4 +114,18 @@ func findJackFiles(dirPath string) ([]string, error) {
 	}
 
 	return res, nil
+}
+
+func write(path string, c string, suffix string) error {
+	e := filepath.Ext(path)
+	n := fmt.Sprintf("%s%s", path[0:len(path)-len(e)], suffix)
+	w, err := os.Create(n)
+	if err != nil {
+		return fmt.Errorf("Failed to create file %s %w", n, err)
+	}
+	_, err = w.WriteString(c)
+	if err != nil {
+		return fmt.Errorf("Failed to write to file %s %w", n, err)
+	}
+	return nil
 }
