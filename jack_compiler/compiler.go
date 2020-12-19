@@ -346,6 +346,13 @@ func (c *Compiler) compileLetStatement(pt TreeNode) ([]string, error) {
 
 	// case of array
 	if len(pt.ChildNodes()) == 8 {
+		exp := pt.ChildNodes()[6]
+		codes, err := c.compile(exp)
+		if err != nil {
+			return nil, fmt.Errorf("[compileLetStatement] %w", err)
+		}
+		res = append(res, codes...)
+
 		switch varName.Meta().Category {
 		case IdCatStatic:
 			res = append(res, c.vmc.push("static", varName.Meta().SymbolInfo.Index))
@@ -360,7 +367,6 @@ func (c *Compiler) compileLetStatement(pt TreeNode) ([]string, error) {
 		case IdCatVar:
 			res = append(res, c.vmc.push("local", varName.Meta().SymbolInfo.Index))
 		}
-
 		idxExp := pt.ChildNodes()[3]
 		idx, err := c.compile(idxExp)
 		if err != nil {
@@ -369,12 +375,6 @@ func (c *Compiler) compileLetStatement(pt TreeNode) ([]string, error) {
 		res = append(res, idx...)
 		res = append(res, c.vmc.add())
 		res = append(res, c.vmc.pop("pointer", 1))
-		exp := pt.ChildNodes()[6]
-		codes, err := c.compile(exp)
-		if err != nil {
-			return nil, fmt.Errorf("[compileLetStatement] %w", err)
-		}
-		res = append(res, codes...)
 		res = append(res, c.vmc.pop("that", 0))
 		return res, nil
 	}

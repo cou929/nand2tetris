@@ -281,11 +281,11 @@ func TestCompiler_compileLetStatement(t *testing.T) {
 				}, LetStatementType, true),
 			},
 			want: []string{
+				"push constant 100",
 				"push local 2",
 				"push local 3",
 				"add",
 				"pop pointer 1",
-				"push constant 100",
 				"pop that 0",
 			},
 			wantErr: false,
