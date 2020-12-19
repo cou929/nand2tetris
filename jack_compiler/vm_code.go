@@ -99,3 +99,16 @@ func (v *VmCode) ifGoTo(label string) string {
 func (v *VmCode) label(label string) string {
 	return fmt.Sprintf("label %s", label)
 }
+
+func (v *VmCode) newStr(in string) []string {
+	// refs Sys.vm:69
+	res := []string{
+		v.push("constant", len(in)),
+		v.call("String", "new", 1),
+	}
+	for _, r := range in {
+		res = append(res, v.pushConstant(int(r)))
+		res = append(res, v.call("String", "appendChar", 2))
+	}
+	return res
+}

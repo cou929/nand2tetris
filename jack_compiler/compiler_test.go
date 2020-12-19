@@ -169,6 +169,50 @@ func TestCompiler_compileExpression(t *testing.T) {
 			},
 			wantErr: false,
 		},
+		{
+			name: "array",
+			args: args{
+				MockNodes([]TreeNode{
+					MockNodes([]TreeNode{
+						MockNodes([]TreeNode{AdaptTokenToNodeWithMeta(IdentifierToken("arr"), &IDMeta{Category: IdCatVar, SymbolInfo: &SymbolInfo{Index: 2}})}, VarNameType, true),
+						MockNodes([]TreeNode{AdaptTokenToNode(SymbolToken("["))}, SymbolType, true),
+						MockNodes([]TreeNode{
+							MockNodes([]TreeNode{
+								MockNodes([]TreeNode{AdaptTokenToNodeWithMeta(IdentifierToken("i"), &IDMeta{Category: IdCatVar, SymbolInfo: &SymbolInfo{Index: 3}})}, VarNameType, true),
+							}, TermType, false),
+						}, ExpressionType, true),
+						MockNodes([]TreeNode{AdaptTokenToNode(SymbolToken("]"))}, SymbolType, true),
+					}, TermType, false),
+				}, ExpressionType, true),
+			},
+			want: []string{
+				"push local 2",
+				"push local 3",
+				"add",
+				"pop pointer 1",
+				"push that 0",
+			},
+			wantErr: false,
+		},
+		{
+			name: "string",
+			args: args{
+				MockNodes([]TreeNode{
+					MockNodes([]TreeNode{AdaptTokenToNode(StrConstToken("abc"))}, TermType, false),
+				}, ExpressionType, true),
+			},
+			want: []string{
+				"push constant 3",
+				"call String.new 1",
+				"push constant 97",
+				"call String.appendChar 2",
+				"push constant 98",
+				"call String.appendChar 2",
+				"push constant 99",
+				"call String.appendChar 2",
+			},
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -213,6 +257,36 @@ func TestCompiler_compileLetStatement(t *testing.T) {
 			want: []string{
 				"push constant 100",
 				"pop local 2",
+			},
+			wantErr: false,
+		},
+		{
+			name: "array",
+			args: args{
+				MockNodes([]TreeNode{
+					AdaptTokenToNode(KeywordToken("let")),
+					MockNodes([]TreeNode{AdaptTokenToNodeWithMeta(IdentifierToken("x"), &IDMeta{Category: IdCatVar, SymbolInfo: &SymbolInfo{Index: 2}})}, VarNameType, true),
+					AdaptTokenToNode(SymbolToken("[")),
+					MockNodes([]TreeNode{
+						MockNodes([]TreeNode{
+							MockNodes([]TreeNode{AdaptTokenToNodeWithMeta(IdentifierToken("i"), &IDMeta{Category: IdCatVar, SymbolInfo: &SymbolInfo{Index: 3}})}, VarNameType, true),
+						}, TermType, false),
+					}, ExpressionType, true),
+					AdaptTokenToNode(SymbolToken("]")),
+					AdaptTokenToNode(SymbolToken("=")),
+					MockNodes([]TreeNode{
+						MockNodes([]TreeNode{AdaptTokenToNode(IntConstToken(100))}, TermType, false),
+					}, ExpressionType, false),
+					AdaptTokenToNode(SymbolToken(";")),
+				}, LetStatementType, true),
+			},
+			want: []string{
+				"push local 2",
+				"push local 3",
+				"add",
+				"pop pointer 1",
+				"push constant 100",
+				"pop that 0",
 			},
 			wantErr: false,
 		},

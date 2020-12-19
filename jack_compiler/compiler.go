@@ -343,13 +343,40 @@ func (c *Compiler) compileStatement(pt TreeNode) ([]string, error) {
 func (c *Compiler) compileLetStatement(pt TreeNode) ([]string, error) {
 	var res []string
 	varName := pt.ChildNodes()[1]
-	expIndex := 3
-	if pt.ChildNodes()[2].Type() == SymbolType && pt.ChildNodes()[2].Value() == "[" {
-		expIndex = 6
-		return nil, fmt.Errorf("Not implemented yet. array[i]")
-	}
-	exp := pt.ChildNodes()[expIndex]
 
+	// case of array
+	if len(pt.ChildNodes()) == 8 {
+		switch varName.Meta().Category {
+		case IdCatStatic:
+			res = append(res, c.vmc.push("static", varName.Meta().SymbolInfo.Index))
+		case IdCatField:
+			res = append(res, c.vmc.push("this", varName.Meta().SymbolInfo.Index))
+		case IdCatArg:
+			res = append(res, c.vmc.push("argument", varName.Meta().SymbolInfo.Index))
+		case IdCatVar:
+			res = append(res, c.vmc.push("local", varName.Meta().SymbolInfo.Index))
+		}
+
+		idxExp := pt.ChildNodes()[3]
+		idx, err := c.compile(idxExp)
+		if err != nil {
+			return nil, fmt.Errorf("[compileStatement] %w", err)
+		}
+		res = append(res, idx...)
+		res = append(res, c.vmc.add())
+		res = append(res, c.vmc.pop("pointer", 1))
+		exp := pt.ChildNodes()[6]
+		codes, err := c.compile(exp)
+		if err != nil {
+			return nil, fmt.Errorf("[compileLetStatement] %w", err)
+		}
+		res = append(res, codes...)
+		res = append(res, c.vmc.pop("that", 0))
+		return res, nil
+	}
+
+	expIndex := 3
+	exp := pt.ChildNodes()[expIndex]
 	codes, err := c.compile(exp)
 	if err != nil {
 		return nil, fmt.Errorf("[compileLetStatement] %w", err)
@@ -490,7 +517,6 @@ func (c *Compiler) traverseExpression(exps []TreeNode) ([]string, error) {
 			}
 			res = append(res, c.vmc.pushConstant(i))
 		case VarNameType:
-			// todo: array case
 			switch child.Meta().Category {
 			case IdCatStatic:
 				res = append(res, c.vmc.push("static", child.Meta().SymbolInfo.Index))
@@ -500,6 +526,18 @@ func (c *Compiler) traverseExpression(exps []TreeNode) ([]string, error) {
 				res = append(res, c.vmc.push("argument", child.Meta().SymbolInfo.Index))
 			case IdCatVar:
 				res = append(res, c.vmc.push("local", child.Meta().SymbolInfo.Index))
+			}
+			if len(term.ChildNodes()) == 4 {
+				// case of array
+				idxExp := term.ChildNodes()[2]
+				idx, err := c.compile(idxExp)
+				if err != nil {
+					return nil, fmt.Errorf("[compileExpression] %w", err)
+				}
+				res = append(res, idx...)
+				res = append(res, c.vmc.add())
+				res = append(res, c.vmc.pop("pointer", 1))
+				res = append(res, c.vmc.push("that", 0))
 			}
 		case SubroutineCallType:
 			codes, err := c.compile(child)
@@ -538,8 +576,10 @@ func (c *Compiler) traverseExpression(exps []TreeNode) ([]string, error) {
 			case "this":
 				res = append(res, c.vmc.push("pointer", 0))
 			}
+		case StrConstType:
+			res = append(res, c.vmc.newStr(child.Value())...)
 		default:
-			return nil, fmt.Errorf("[compileExpression] Invalid node %v", term)
+			return nil, fmt.Errorf("[compileExpression] Invalid node %v, %v", term, child.Type())
 		}
 	}
 
