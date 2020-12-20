@@ -74,12 +74,41 @@ class Math {
      *  the Jack expressions x/y and divide(x,y) return the same value.
      */
     function int divide(int x, int y) {
-        return 1;
+        var int xx, yy, q, absRes;
+        let xx = Math.abs(x);
+        let yy = Math.abs(y);
+        if (yy > xx) {
+            return 0;
+        }
+        let q = Math.divide(xx, 2 * yy);
+        if ((xx - ((2 * q) * yy)) < yy) {
+            let absRes = 2 * q;
+        } else {
+            let absRes = (2 * q) + 1;
+        }
+        if ((x > 0) & (y > 0)) {
+            return absRes;
+        }
+        if ((x < 0) & (y < 0)) {
+            return absRes;
+        }
+        return -absRes;
     }
 
     /** Returns the integer part of the square root of x. */
     function int sqrt(int x) {
-        return 1;
+        var int y, n, j, tmp;
+        let y = 0;
+        let n = 16;
+        let j = (n / 2) - 1;
+        while (j > -1) {
+            let tmp = (y + twoToThe[j]) * (y + twoToThe[j]); // twoToThe[j] == 2 ^ j
+            if (((tmp < x) | (tmp = x)) & (tmp > 0)) {  // (tmp > 0) prevents overflow
+                let y = y + twoToThe[j];
+            }
+            let j = j - 1;
+        }
+        return y;
     }
 
     /** Returns the greater number. */

@@ -180,23 +180,161 @@ label Math.multiply.3.IF.END
 push local 0
 neg
 return
-function Math.divide 0
-push constant 1
+function Math.divide 4
+push argument 0
+call Math.abs 1
+pop local 0
+push argument 1
+call Math.abs 1
+pop local 1
+push local 1
+push local 0
+gt
+not
+if-goto Math.divide.4.IF.ELSE
+push constant 0
 return
-function Math.sqrt 0
+goto Math.divide.4.IF.END
+label Math.divide.4.IF.ELSE
+label Math.divide.4.IF.END
+push local 0
+push constant 2
+push local 1
+call Math.multiply 2
+call Math.divide 2
+pop local 2
+push local 0
+push constant 2
+push local 2
+call Math.multiply 2
+push local 1
+call Math.multiply 2
+sub
+push local 1
+lt
+not
+if-goto Math.divide.5.IF.ELSE
+push constant 2
+push local 2
+call Math.multiply 2
+pop local 3
+goto Math.divide.5.IF.END
+label Math.divide.5.IF.ELSE
+push constant 2
+push local 2
+call Math.multiply 2
 push constant 1
+add
+pop local 3
+label Math.divide.5.IF.END
+push argument 0
+push constant 0
+gt
+push argument 1
+push constant 0
+gt
+and
+not
+if-goto Math.divide.6.IF.ELSE
+push local 3
+return
+goto Math.divide.6.IF.END
+label Math.divide.6.IF.ELSE
+label Math.divide.6.IF.END
+push argument 0
+push constant 0
+lt
+push argument 1
+push constant 0
+lt
+and
+not
+if-goto Math.divide.7.IF.ELSE
+push local 3
+return
+goto Math.divide.7.IF.END
+label Math.divide.7.IF.ELSE
+label Math.divide.7.IF.END
+push local 3
+neg
+return
+function Math.sqrt 4
+push constant 0
+pop local 0
+push constant 16
+pop local 1
+push local 1
+push constant 2
+call Math.divide 2
+push constant 1
+sub
+pop local 2
+label Math.sqrt.1.WHILE.CONT
+push local 2
+push constant 1
+neg
+gt
+not
+if-goto Math.sqrt.1.WHILE.END
+push local 0
+push static 0
+push local 2
+add
+pop pointer 1
+push that 0
+add
+push local 0
+push static 0
+push local 2
+add
+pop pointer 1
+push that 0
+add
+call Math.multiply 2
+pop local 3
+push local 3
+push argument 0
+lt
+push local 3
+push argument 0
+eq
+or
+push local 3
+push constant 0
+gt
+and
+not
+if-goto Math.sqrt.8.IF.ELSE
+push local 0
+push static 0
+push local 2
+add
+pop pointer 1
+push that 0
+add
+pop local 0
+goto Math.sqrt.8.IF.END
+label Math.sqrt.8.IF.ELSE
+label Math.sqrt.8.IF.END
+push local 2
+push constant 1
+sub
+pop local 2
+goto Math.sqrt.1.WHILE.CONT
+label Math.sqrt.1.WHILE.END
+push local 0
 return
 function Math.max 0
 push argument 0
 push argument 1
 gt
 not
-if-goto Math.max.4.IF.ELSE
+if-goto Math.max.9.IF.ELSE
 push argument 0
 return
-goto Math.max.4.IF.END
-label Math.max.4.IF.ELSE
-label Math.max.4.IF.END
+goto Math.max.9.IF.END
+label Math.max.9.IF.ELSE
+label Math.max.9.IF.END
 push argument 1
 return
 function Math.min 0
@@ -204,12 +342,12 @@ push argument 0
 push argument 1
 lt
 not
-if-goto Math.min.5.IF.ELSE
+if-goto Math.min.10.IF.ELSE
 push argument 0
 return
-goto Math.min.5.IF.END
-label Math.min.5.IF.ELSE
-label Math.min.5.IF.END
+goto Math.min.10.IF.END
+label Math.min.10.IF.ELSE
+label Math.min.10.IF.END
 push argument 1
 return
 function Math.bit 2
@@ -217,12 +355,12 @@ push constant 14
 pop local 0
 push argument 0
 pop local 1
-label Math.bit.1.WHILE.CONT
+label Math.bit.2.WHILE.CONT
 push local 0
 push argument 1
 gt
 not
-if-goto Math.bit.1.WHILE.END
+if-goto Math.bit.2.WHILE.END
 push local 1
 push static 0
 push local 0
@@ -239,7 +377,7 @@ push that 0
 eq
 or
 not
-if-goto Math.bit.6.IF.ELSE
+if-goto Math.bit.11.IF.ELSE
 push local 1
 push static 0
 push local 0
@@ -248,15 +386,15 @@ pop pointer 1
 push that 0
 sub
 pop local 1
-goto Math.bit.6.IF.END
-label Math.bit.6.IF.ELSE
-label Math.bit.6.IF.END
+goto Math.bit.11.IF.END
+label Math.bit.11.IF.ELSE
+label Math.bit.11.IF.END
 push local 0
 push constant 1
 sub
 pop local 0
-goto Math.bit.1.WHILE.CONT
-label Math.bit.1.WHILE.END
+goto Math.bit.2.WHILE.CONT
+label Math.bit.2.WHILE.END
 push local 1
 push static 0
 push argument 1
@@ -265,12 +403,12 @@ pop pointer 1
 push that 0
 lt
 not
-if-goto Math.bit.7.IF.ELSE
+if-goto Math.bit.12.IF.ELSE
 push constant 0
 return
-goto Math.bit.7.IF.END
-label Math.bit.7.IF.ELSE
-label Math.bit.7.IF.END
+goto Math.bit.12.IF.END
+label Math.bit.12.IF.ELSE
+label Math.bit.12.IF.END
 push constant 1
 neg
 return
