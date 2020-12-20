@@ -108,8 +108,77 @@ label Math.abs.0.IF.ELSE
 label Math.abs.0.IF.END
 push argument 0
 return
-function Math.multiply 0
+function Math.multiply 5
+push argument 0
+call Math.abs 1
+pop local 3
+push argument 1
+call Math.abs 1
+pop local 4
+push constant 0
+pop local 0
+push local 3
+pop local 1
+push constant 0
+pop local 2
+label Math.multiply.0.WHILE.CONT
+push local 2
+push constant 15
+lt
+not
+if-goto Math.multiply.0.WHILE.END
+push local 4
+push local 2
+call Math.bit 2
+not
+if-goto Math.multiply.1.IF.ELSE
+push local 0
+push local 1
+add
+pop local 0
+goto Math.multiply.1.IF.END
+label Math.multiply.1.IF.ELSE
+label Math.multiply.1.IF.END
+push local 1
+push local 1
+add
+pop local 1
+push local 2
 push constant 1
+add
+pop local 2
+goto Math.multiply.0.WHILE.CONT
+label Math.multiply.0.WHILE.END
+push argument 0
+push constant 0
+gt
+push argument 1
+push constant 0
+gt
+and
+not
+if-goto Math.multiply.2.IF.ELSE
+push local 0
+return
+goto Math.multiply.2.IF.END
+label Math.multiply.2.IF.ELSE
+label Math.multiply.2.IF.END
+push argument 0
+push constant 0
+lt
+push argument 1
+push constant 0
+lt
+and
+not
+if-goto Math.multiply.3.IF.ELSE
+push local 0
+return
+goto Math.multiply.3.IF.END
+label Math.multiply.3.IF.ELSE
+label Math.multiply.3.IF.END
+push local 0
+neg
 return
 function Math.divide 0
 push constant 1
@@ -122,12 +191,12 @@ push argument 0
 push argument 1
 gt
 not
-if-goto Math.max.1.IF.ELSE
+if-goto Math.max.4.IF.ELSE
 push argument 0
 return
-goto Math.max.1.IF.END
-label Math.max.1.IF.ELSE
-label Math.max.1.IF.END
+goto Math.max.4.IF.END
+label Math.max.4.IF.ELSE
+label Math.max.4.IF.END
 push argument 1
 return
 function Math.min 0
@@ -135,12 +204,12 @@ push argument 0
 push argument 1
 lt
 not
-if-goto Math.min.2.IF.ELSE
+if-goto Math.min.5.IF.ELSE
 push argument 0
 return
-goto Math.min.2.IF.END
-label Math.min.2.IF.ELSE
-label Math.min.2.IF.END
+goto Math.min.5.IF.END
+label Math.min.5.IF.ELSE
+label Math.min.5.IF.END
 push argument 1
 return
 function Math.bit 2
@@ -148,18 +217,19 @@ push constant 14
 pop local 0
 push argument 0
 pop local 1
-label Math.bit.0.WHILE.CONT
+label Math.bit.1.WHILE.CONT
 push local 0
 push argument 1
 gt
 not
-if-goto Math.bit.0.WHILE.END
+if-goto Math.bit.1.WHILE.END
 push local 1
 push static 0
 push local 0
 add
 pop pointer 1
 push that 0
+gt
 push local 1
 push static 0
 push local 0
@@ -168,9 +238,8 @@ pop pointer 1
 push that 0
 eq
 or
-gt
 not
-if-goto Math.bit.3.IF.ELSE
+if-goto Math.bit.6.IF.ELSE
 push local 1
 push static 0
 push local 0
@@ -179,15 +248,15 @@ pop pointer 1
 push that 0
 sub
 pop local 1
-goto Math.bit.3.IF.END
-label Math.bit.3.IF.ELSE
-label Math.bit.3.IF.END
+goto Math.bit.6.IF.END
+label Math.bit.6.IF.ELSE
+label Math.bit.6.IF.END
 push local 0
 push constant 1
 sub
 pop local 0
-goto Math.bit.0.WHILE.CONT
-label Math.bit.0.WHILE.END
+goto Math.bit.1.WHILE.CONT
+label Math.bit.1.WHILE.END
 push local 1
 push static 0
 push argument 1
@@ -196,12 +265,12 @@ pop pointer 1
 push that 0
 lt
 not
-if-goto Math.bit.4.IF.ELSE
+if-goto Math.bit.7.IF.ELSE
 push constant 0
 return
-goto Math.bit.4.IF.END
-label Math.bit.4.IF.ELSE
-label Math.bit.4.IF.END
+goto Math.bit.7.IF.END
+label Math.bit.7.IF.ELSE
+label Math.bit.7.IF.END
 push constant 1
 neg
 return

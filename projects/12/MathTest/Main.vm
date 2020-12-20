@@ -130,37 +130,5 @@ push constant 13
 add
 pop pointer 1
 pop that 0
-push constant 13
-push constant 0
-call Math.bit 2
-push local 0
-push constant 14
-add
-pop pointer 1
-pop that 0
-push constant 13
-push constant 1
-call Math.bit 2
-push local 0
-push constant 15
-add
-pop pointer 1
-pop that 0
-push constant 13
-push constant 2
-call Math.bit 2
-push local 0
-push constant 16
-add
-pop pointer 1
-pop that 0
-push constant 13
-push constant 3
-call Math.bit 2
-push local 0
-push constant 17
-add
-pop pointer 1
-pop that 0
 push constant 0
 return
