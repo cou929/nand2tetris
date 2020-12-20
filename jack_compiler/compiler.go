@@ -7,12 +7,11 @@ import (
 )
 
 type Compiler struct {
-	curClassInfo    *classInfo
-	curFuncInfo     *funcInfo
-	callingArgCount int
-	ifCounter       int
-	whileCounter    int
-	vmc             *VmCode
+	curClassInfo *classInfo
+	curFuncInfo  *funcInfo
+	ifCounter    int
+	whileCounter int
+	vmc          *VmCode
 }
 
 type classInfo struct {
@@ -107,7 +106,6 @@ func (c *Compiler) compile(pt TreeNode) ([]string, error) {
 func (c *Compiler) resetAllState() {
 	c.resetClassState()
 	c.resetFuncState()
-	c.resetCallingArgCount()
 	c.resetIfCounter()
 	c.resetWhileCounter()
 }
@@ -161,14 +159,6 @@ func (c *Compiler) incLocalVarCount() {
 		c.curFuncInfo = &funcInfo{}
 	}
 	c.curFuncInfo.localVarCount++
-}
-
-func (c *Compiler) resetCallingArgCount() {
-	c.callingArgCount = 0
-}
-
-func (c *Compiler) incCallingArgCount() {
-	c.callingArgCount++
 }
 
 func (c *Compiler) resetIfCounter() {
@@ -628,7 +618,7 @@ func (c *Compiler) compileSubroutineCall(pt TreeNode) ([]string, error) {
 	var res []string
 	className := ""
 	subName := ""
-	c.resetCallingArgCount()
+	callingArgCount := 0
 
 	for i, node := range pt.ChildNodes() {
 		if i == 0 {
@@ -639,7 +629,7 @@ func (c *Compiler) compileSubroutineCall(pt TreeNode) ([]string, error) {
 				subName = node.Value()
 				// pass current this as argument[0] of callee
 				res = append(res, c.vmc.push("pointer", 0))
-				c.incCallingArgCount()
+				callingArgCount++
 			case ClassNameType:
 				className = node.Value()
 			case VarNameType:
@@ -659,7 +649,7 @@ func (c *Compiler) compileSubroutineCall(pt TreeNode) ([]string, error) {
 				case IdCatVar:
 					res = append(res, c.vmc.push("local", node.Meta().SymbolInfo.Index))
 				}
-				c.incCallingArgCount()
+				callingArgCount++
 			}
 		}
 
@@ -673,9 +663,14 @@ func (c *Compiler) compileSubroutineCall(pt TreeNode) ([]string, error) {
 				return nil, fmt.Errorf("[compileSubroutineCall] %w", err)
 			}
 			res = append(res, codes...)
+			for _, n := range node.ChildNodes() {
+				if n.Type() == ExpressionType {
+					callingArgCount++
+				}
+			}
 		}
 	}
-	res = append(res, c.vmc.call(className, subName, c.callingArgCount))
+	res = append(res, c.vmc.call(className, subName, callingArgCount))
 	return res, nil
 }
 
@@ -690,7 +685,6 @@ func (c *Compiler) compileExpressionList(pt TreeNode) ([]string, error) {
 			return nil, fmt.Errorf("[compileExpressionList] %w", err)
 		}
 		res = append(res, codes...)
-		c.incCallingArgCount()
 	}
 	return res, nil
 }

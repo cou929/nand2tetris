@@ -75,6 +75,44 @@ func TestCompiler_compileSubroutineCall(t *testing.T) {
 			},
 			wantErr: false,
 		},
+		{
+			name:   "nesting call",
+			fields: fields{&classInfo{name: "FooClass"}, &funcInfo{name: "BarFunc"}},
+			args: args{
+				MockNodes([]TreeNode{
+					MockNodes([]TreeNode{AdaptTokenToNode(IdentifierToken("Output"))}, ClassNameType, true),
+					AdaptTokenToNode(SymbolToken(".")),
+					MockNodes([]TreeNode{AdaptTokenToNode(IdentifierToken("printInt"))}, SubroutineNameType, true),
+					AdaptTokenToNode(SymbolToken("(")),
+					MockNodes([]TreeNode{
+						MockNodes([]TreeNode{
+							MockNodes([]TreeNode{
+								MockNodes([]TreeNode{
+									MockNodes([]TreeNode{AdaptTokenToNodeWithMeta(IdentifierToken("s"), &IDMeta{Category: IdCatVar, SymbolInfo: &SymbolInfo{Index: 1, Type: "String"}})}, VarNameType, true),
+									AdaptTokenToNode(SymbolToken(".")),
+									MockNodes([]TreeNode{AdaptTokenToNode(IdentifierToken("intValue"))}, SubroutineNameType, true),
+									AdaptTokenToNode(SymbolToken("(")),
+									MockNodes(nil, ExpressionListType, false),
+									AdaptTokenToNode(SymbolToken(")")),
+								}, SubroutineCallType, true),
+							}, TermType, true),
+						}, ExpressionType, true),
+						AdaptTokenToNode(SymbolToken(",")),
+						MockNodes([]TreeNode{
+							MockNodes([]TreeNode{AdaptTokenToNode(IntConstToken(10))}, TermType, false),
+						}, ExpressionType, false),
+					}, ExpressionListType, false),
+					AdaptTokenToNode(SymbolToken(")")),
+				}, SubroutineCallType, true),
+			},
+			want: []string{
+				"push local 1",
+				"call String.intValue 1",
+				"push constant 10",
+				"call Output.printInt 2",
+			},
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
