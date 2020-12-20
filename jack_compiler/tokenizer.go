@@ -183,14 +183,6 @@ func (t *Tokenizer) bufToToken() (Token, error) {
 		return kw, nil
 	}
 
-	i, err := strconv.Atoi(b)
-	if err == nil {
-		it, ok := NewIntConstToken(i)
-		if ok {
-			return it, nil
-		}
-	}
-
 	if t.state == ordinal {
 		id, ok := NewIdentifierToken(b)
 		if ok {
@@ -202,6 +194,14 @@ func (t *Tokenizer) bufToToken() (Token, error) {
 		st, ok := NewStrConstToken(b)
 		if ok {
 			return st, nil
+		}
+	}
+
+	i, err := strconv.Atoi(b)
+	if err == nil {
+		it, ok := NewIntConstToken(i)
+		if ok {
+			return it, nil
 		}
 	}
 

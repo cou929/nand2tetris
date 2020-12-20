@@ -3,6 +3,8 @@ package main
 import (
 	"reflect"
 	"testing"
+
+	"github.com/google/go-cmp/cmp"
 )
 
 func TestTokenizer_parseLine(t *testing.T) {
@@ -180,6 +182,19 @@ func TestTokenizer_parseLine(t *testing.T) {
 			},
 			wantErr: false,
 		},
+		{
+			name:   "digit only string",
+			fields: fields{state: ordinal},
+			args:   args{l: `let s = "-123";`},
+			want: []Token{
+				KeywordToken("let"),
+				IdentifierToken("s"),
+				SymbolToken("="),
+				StrConstToken("-123"),
+				SymbolToken(";"),
+			},
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -191,8 +206,8 @@ func TestTokenizer_parseLine(t *testing.T) {
 				t.Errorf("Tokenizer.parseLine() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("Tokenizer.parseLine() = %v, want %v", got, tt.want)
+			if diff := cmp.Diff(got, tt.want); diff != "" {
+				t.Errorf("Tokenizer.parseLine() diff (-got +want)\n%s", diff)
 			}
 		})
 	}
