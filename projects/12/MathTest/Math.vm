@@ -1,0 +1,207 @@
+function Math.init 0
+push constant 15
+call Array.new 1
+pop static 0
+push constant 1
+push static 0
+push constant 0
+add
+pop pointer 1
+pop that 0
+push constant 2
+push static 0
+push constant 1
+add
+pop pointer 1
+pop that 0
+push constant 4
+push static 0
+push constant 2
+add
+pop pointer 1
+pop that 0
+push constant 8
+push static 0
+push constant 3
+add
+pop pointer 1
+pop that 0
+push constant 16
+push static 0
+push constant 4
+add
+pop pointer 1
+pop that 0
+push constant 32
+push static 0
+push constant 5
+add
+pop pointer 1
+pop that 0
+push constant 64
+push static 0
+push constant 6
+add
+pop pointer 1
+pop that 0
+push constant 128
+push static 0
+push constant 7
+add
+pop pointer 1
+pop that 0
+push constant 256
+push static 0
+push constant 8
+add
+pop pointer 1
+pop that 0
+push constant 512
+push static 0
+push constant 9
+add
+pop pointer 1
+pop that 0
+push constant 1024
+push static 0
+push constant 10
+add
+pop pointer 1
+pop that 0
+push constant 2048
+push static 0
+push constant 11
+add
+pop pointer 1
+pop that 0
+push constant 4096
+push static 0
+push constant 12
+add
+pop pointer 1
+pop that 0
+push constant 8192
+push static 0
+push constant 13
+add
+pop pointer 1
+pop that 0
+push constant 16384
+push static 0
+push constant 14
+add
+pop pointer 1
+pop that 0
+push constant 0
+return
+function Math.abs 0
+push argument 0
+push constant 0
+lt
+not
+if-goto Math.abs.0.IF.ELSE
+push argument 0
+neg
+return
+goto Math.abs.0.IF.END
+label Math.abs.0.IF.ELSE
+label Math.abs.0.IF.END
+push argument 0
+return
+function Math.multiply 0
+push constant 1
+return
+function Math.divide 0
+push constant 1
+return
+function Math.sqrt 0
+push constant 1
+return
+function Math.max 0
+push argument 0
+push argument 1
+gt
+not
+if-goto Math.max.1.IF.ELSE
+push argument 0
+return
+goto Math.max.1.IF.END
+label Math.max.1.IF.ELSE
+label Math.max.1.IF.END
+push argument 1
+return
+function Math.min 0
+push argument 0
+push argument 1
+lt
+not
+if-goto Math.min.2.IF.ELSE
+push argument 0
+return
+goto Math.min.2.IF.END
+label Math.min.2.IF.ELSE
+label Math.min.2.IF.END
+push argument 1
+return
+function Math.bit 2
+push constant 14
+pop local 0
+push argument 0
+pop local 1
+label Math.bit.0.WHILE.CONT
+push local 0
+push argument 1
+gt
+not
+if-goto Math.bit.0.WHILE.END
+push local 1
+push static 0
+push local 0
+add
+pop pointer 1
+push that 0
+push local 1
+push static 0
+push local 0
+add
+pop pointer 1
+push that 0
+eq
+or
+gt
+not
+if-goto Math.bit.3.IF.ELSE
+push local 1
+push static 0
+push local 0
+add
+pop pointer 1
+push that 0
+sub
+pop local 1
+goto Math.bit.3.IF.END
+label Math.bit.3.IF.ELSE
+label Math.bit.3.IF.END
+push local 0
+push constant 1
+sub
+pop local 0
+goto Math.bit.0.WHILE.CONT
+label Math.bit.0.WHILE.END
+push local 1
+push static 0
+push argument 1
+add
+pop pointer 1
+push that 0
+lt
+not
+if-goto Math.bit.4.IF.ELSE
+push constant 0
+return
+goto Math.bit.4.IF.END
+label Math.bit.4.IF.ELSE
+label Math.bit.4.IF.END
+push constant 1
+neg
+return
