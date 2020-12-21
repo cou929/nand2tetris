@@ -130,5 +130,11 @@ push constant 13
 add
 pop pointer 1
 pop that 0
+push constant 3119
+push constant 0
+push constant 0
+call Math.setBit 3
+call Output.printInt 1
+pop temp 7
 push constant 0
 return
