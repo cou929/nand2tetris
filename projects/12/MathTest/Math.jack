@@ -142,18 +142,4 @@ class Math {
         }
         return true;
     }
-
-    function int setBit(int x, int j, boolean val) {
-        var boolean cur;
-        let cur = Math.bit(x, j);
-        if (cur = val) {
-            return x;
-        }
-        if (val = true) {
-            return x + twoToThe[j];
-        } else {
-            return x - twoToThe[j];
-        }
-        return val;
-    }
 }
