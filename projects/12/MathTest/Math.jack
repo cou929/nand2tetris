@@ -129,15 +129,8 @@ class Math {
 
     function boolean bit(int x, int j) {
         var int i, rest;
-        let i = 14;
-        let rest = x;
-        while (i > j) {
-            if ((rest > twoToThe[i]) | (rest = twoToThe[i])) {
-                let rest = rest - twoToThe[i];
-            }
-            let i = i - 1;
-        }
-        if (rest < twoToThe[j]) {
+        let i = x & twoToThe[j];
+        if (i = 0) {
             return false;
         }
         return true;

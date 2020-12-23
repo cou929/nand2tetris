@@ -1,13 +1,13 @@
 function Sys.init 0
-call Keyboard.init 0
+call Memory.init 0
 pop temp 7
 call Math.init 0
-pop temp 7
-call Memory.init 0
 pop temp 7
 call Output.init 0
 pop temp 7
 call Screen.init 0
+pop temp 7
+call Keyboard.init 0
 pop temp 7
 call Main.main 0
 pop temp 7

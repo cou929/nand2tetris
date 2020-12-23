@@ -351,64 +351,24 @@ label Math.min.10.IF.END
 push argument 1
 return
 function Math.bit 2
-push constant 14
-pop local 0
 push argument 0
-pop local 1
-label Math.bit.2.WHILE.CONT
-push local 0
+push static 0
 push argument 1
-gt
-not
-if-goto Math.bit.2.WHILE.END
-push local 1
-push static 0
-push local 0
 add
 pop pointer 1
 push that 0
-gt
-push local 1
-push static 0
+and
+pop local 0
 push local 0
-add
-pop pointer 1
-push that 0
+push constant 0
 eq
-or
 not
 if-goto Math.bit.11.IF.ELSE
-push local 1
-push static 0
-push local 0
-add
-pop pointer 1
-push that 0
-sub
-pop local 1
+push constant 0
+return
 goto Math.bit.11.IF.END
 label Math.bit.11.IF.ELSE
 label Math.bit.11.IF.END
-push local 0
-push constant 1
-sub
-pop local 0
-goto Math.bit.2.WHILE.CONT
-label Math.bit.2.WHILE.END
-push local 1
-push static 0
-push argument 1
-add
-pop pointer 1
-push that 0
-lt
-not
-if-goto Math.bit.12.IF.ELSE
-push constant 0
-return
-goto Math.bit.12.IF.END
-label Math.bit.12.IF.ELSE
-label Math.bit.12.IF.END
 push constant 1
 neg
 return
